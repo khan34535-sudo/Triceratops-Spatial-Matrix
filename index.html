@@ -1,0 +1,1525 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Triceratops Spatial Matrix — Prototype v0.5</title>
+<style>
+:root{
+  --bg:#03050f; --glass:rgba(10,22,48,.58); --glass2:rgba(16,34,70,.55);
+  --cy:#35f3ff; --mg:#ff4de1; --vi:#8b5cff; --lm:#7dffb0; --am:#ffd36b; --rd:#ff5d73;
+  --text:#e6f6ff; --muted:#8fb4cc; --line:rgba(53,243,255,.28);
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;color:var(--text);font:16px/1.65 "Segoe UI",system-ui,-apple-system,sans-serif;
+  background:
+   radial-gradient(900px 500px at 85% -5%,rgba(139,92,255,.28),transparent 60%),
+   radial-gradient(800px 500px at 0% 20%,rgba(53,243,255,.16),transparent 60%),
+   linear-gradient(rgba(53,243,255,.045) 1px,transparent 1px) 0 0/48px 48px,
+   linear-gradient(90deg,rgba(53,243,255,.045) 1px,transparent 1px) 0 0/48px 48px,
+   var(--bg);
+  background-attachment:fixed}
+body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:50;
+  background:repeating-linear-gradient(to bottom,rgba(255,255,255,.035) 0,rgba(255,255,255,.035) 1px,transparent 1px,transparent 3px);
+  mix-blend-mode:screen}
+a{color:var(--cy)}
+h1,h2,h3{margin:0 0 .5em;line-height:1.15;font-weight:600}
+h1{font-size:clamp(2.1rem,6vw,3.8rem);letter-spacing:3px;text-transform:uppercase;
+  text-shadow:-2px 0 rgba(255,77,225,.7),2px 0 rgba(53,243,255,.7),0 0 24px rgba(53,243,255,.45);animation:flick 6s infinite}
+h2{font-size:1.45rem;color:var(--cy);letter-spacing:2px;text-transform:uppercase;padding-bottom:.4em;
+  border-bottom:1px solid var(--line);text-shadow:0 0 12px rgba(53,243,255,.5)}
+h2 .n{color:var(--mg);margin-right:8px;font-family:Consolas,monospace}
+h3{font-size:1rem;color:var(--lm);letter-spacing:1px;text-transform:uppercase}
+.mono{font-family:Consolas,"SF Mono",monospace}
+.muted{color:var(--muted)}
+small{color:var(--muted)}
+.wrap{max-width:1180px;margin:0 auto;padding:0 20px}
+section{padding:40px 0}
+@keyframes flick{0%,96%,100%{opacity:1}97%{opacity:.82}98%{opacity:1}99%{opacity:.88}}
+@keyframes spin{to{stroke-dashoffset:-160}}
+@keyframes flow{to{stroke-dashoffset:-28}}
+@keyframes blink{50%{opacity:.35}}
+
+.ribbon{background:linear-gradient(90deg,#1a0f33,#0a2540,#1a0f33);color:var(--am);text-align:center;
+  font:600 .74rem Consolas,monospace;letter-spacing:3px;padding:7px 10px;text-transform:uppercase;border-bottom:1px solid var(--line)}
+.ribbon i{color:var(--rd);font-style:normal;animation:blink 1.4s infinite}
+
+header.hero{padding:58px 0 24px}
+.kicker{font:.8rem Consolas,monospace;letter-spacing:4px;color:var(--mg);text-transform:uppercase}
+.byline{display:flex;flex-wrap:wrap;gap:8px 22px;margin-top:18px;color:var(--muted);font-size:.92rem}
+.byline b{color:var(--text)}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
+.chip{border:1px solid var(--line);background:var(--glass);border-radius:999px;padding:4px 12px;font:.76rem Consolas,monospace;color:var(--muted)}
+.chip b{color:var(--cy)}
+
+nav{position:sticky;top:0;z-index:40;background:rgba(3,5,15,.82);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+nav .wrap{display:flex;gap:4px;overflow-x:auto;padding:8px 20px}
+nav a{white-space:nowrap;text-decoration:none;color:var(--muted);font:.78rem Consolas,monospace;letter-spacing:1px;
+  padding:6px 10px;border-radius:6px;text-transform:uppercase}
+nav a:hover{color:var(--cy);background:rgba(53,243,255,.08)}
+
+.card{background:var(--glass);border:1px solid var(--line);border-radius:14px;padding:18px;
+  box-shadow:0 0 0 1px rgba(255,255,255,.03) inset,0 0 28px rgba(53,243,255,.07)}
+.grid{display:grid;gap:16px}
+.g2{grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}
+.g3{grid-template-columns:repeat(auto-fit,minmax(230px,1fr))}
+.stat{font:700 1.8rem Consolas,monospace;color:var(--cy);text-shadow:0 0 14px rgba(53,243,255,.6)}
+.stat small{display:block;font:400 .78rem "Segoe UI",sans-serif}
+
+.bay{display:grid;grid-template-columns:2.1fr 1fr;gap:16px;align-items:start}
+@media(max-width:900px){.bay{grid-template-columns:1fr}}
+.stage{position:relative;border:1px solid var(--line);border-radius:14px;padding:8px;overflow:hidden;
+  background:radial-gradient(600px 300px at 50% 85%,rgba(53,243,255,.16),transparent 70%),rgba(4,10,24,.7)}
+.stage svg,.stage canvas{width:100%;height:auto;display:block}
+.stage canvas{aspect-ratio:16/10;height:auto;cursor:grab;touch-action:none;filter:drop-shadow(0 0 7px rgba(53,243,255,.45))}
+.stage canvas:active{cursor:grabbing}
+.stamp{position:absolute;right:12px;top:10px;font:700 .66rem Consolas,monospace;letter-spacing:2px;color:var(--am);
+  border:1px solid rgba(255,211,107,.5);padding:3px 8px;border-radius:5px;background:rgba(0,0,0,.35);z-index:2}
+.hud{position:absolute;left:12px;top:10px;font:.7rem Consolas,monospace;color:var(--cy);letter-spacing:1px;z-index:2;line-height:1.5;pointer-events:none}
+.controls{display:flex;flex-direction:column;gap:14px}
+.controls label.ck{display:flex;align-items:center;gap:8px;font-size:.9rem;cursor:pointer;margin:2px 0}
+input[type=checkbox]{accent-color:var(--cy)}
+input[type=range]{width:100%;accent-color:var(--mg)}
+.dot{width:11px;height:11px;border-radius:50%;display:inline-block;box-shadow:0 0 8px currentColor}
+.seg{display:flex;gap:6px;flex-wrap:wrap}
+.seg button,.btn{background:rgba(53,243,255,.07);color:var(--text);border:1px solid var(--line);border-radius:7px;
+  padding:6px 11px;cursor:pointer;font:.78rem Consolas,monospace;letter-spacing:1px;text-transform:uppercase}
+.seg button:hover,.btn:hover{border-color:var(--cy)}
+.seg button.on{background:var(--cy);color:#021018;border-color:var(--cy);box-shadow:0 0 14px rgba(53,243,255,.6)}
+.ev{font-size:.78rem;color:var(--muted)}
+.tag{display:inline-block;border-radius:5px;padding:1px 8px;font:.7rem Consolas,monospace;margin-right:4px;border:1px solid}
+.t-d{color:var(--lm);border-color:rgba(125,255,176,.5);background:rgba(125,255,176,.08)}
+.t-i{color:var(--am);border-color:rgba(255,211,107,.5);background:rgba(255,211,107,.08)}
+.t-s{color:var(--rd);border-color:rgba(255,93,115,.5);background:rgba(255,93,115,.08)}
+.readout{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.readout div{border:1px solid var(--line);border-radius:8px;padding:8px;text-align:center;background:rgba(0,0,0,.25)}
+.readout b{display:block;font:700 1.15rem Consolas,monospace;color:var(--cy)}
+.readout span{font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px}
+.info{min-height:86px;border:1px dashed rgba(255,77,225,.5);border-radius:10px;padding:10px 12px;background:rgba(255,77,225,.05);font-size:.88rem}
+.legend{columns:2;font-size:.82rem;color:var(--muted);margin:8px 0 0;padding-left:22px}
+
+.axes{list-style:none;display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;padding:0;margin:0 0 14px}
+.axes li{border:1px solid var(--line);border-radius:8px;padding:6px 10px;background:rgba(0,0,0,.28);font:.72rem Consolas,monospace;line-height:1.35}
+.axes b{color:var(--mg);display:block}.axes span{color:var(--muted);text-transform:uppercase;letter-spacing:1px;font-size:.66rem}
+.axes em{display:block;font-style:normal;color:var(--cy);font-weight:700;font-size:.92rem;text-shadow:0 0 10px rgba(53,243,255,.5)}
+.dpad{position:absolute;left:12px;bottom:12px;display:flex;gap:4px;z-index:3}
+.dpad button{width:34px;height:34px;padding:0;font-size:.95rem;background:rgba(3,10,24,.75)}
+.bars .bar{display:grid;grid-template-columns:128px 1fr 30px;gap:8px;align-items:center;font-size:.76rem;margin:5px 0;color:var(--muted)}
+.bars u{display:block;text-decoration:none;height:8px;background:rgba(255,255,255,.07);border-radius:4px;overflow:hidden}
+.bars i{display:block;height:100%;border-radius:4px;background:linear-gradient(90deg,var(--cy),var(--mg));box-shadow:0 0 8px rgba(53,243,255,.5);transition:width .3s}
+.bars b{font:700 .78rem Consolas,monospace;color:var(--cy);text-align:right}
+.plist button{display:block;width:100%;text-align:left;margin:3px 0;font:.76rem "Segoe UI",sans-serif;letter-spacing:0;text-transform:none}
+.sect{font:600 .7rem Consolas,monospace;letter-spacing:2px;color:var(--mg);text-transform:uppercase;margin:10px 0 2px}
+section>.kicker{margin-bottom:4px}
+#side .hb,#side .hb2,#side .hf,#side .hh{fill-opacity:var(--skinA,1);stroke-opacity:var(--skinA,1)}
+/* svg holo styles */
+.hb{fill:url(#holoG);stroke:#35f3ff;stroke-width:1.3}
+.hb2{fill:rgba(53,243,255,.10);stroke:rgba(53,243,255,.45);stroke-width:1}
+.hh{fill:rgba(255,77,225,.35);stroke:#ff4de1;stroke-width:1.4}
+.hf{fill:rgba(139,92,255,.24);stroke:#8b5cff;stroke-width:1.4}
+.ring{fill:none;stroke:rgba(53,243,255,.6);stroke-width:1.2;stroke-dasharray:6 10;animation:spin 9s linear infinite}
+.flowline{stroke-dasharray:3 11;animation:flow 1.1s linear infinite}
+.hs{cursor:pointer}
+
+table{width:100%;border-collapse:collapse;font-size:.9rem}
+th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{color:var(--cy);font:600 .78rem Consolas,monospace;letter-spacing:1.5px;text-transform:uppercase}
+.note{border-left:3px solid var(--mg);padding:9px 14px;background:rgba(255,77,225,.06);border-radius:0 8px 8px 0;font-size:.88rem;color:var(--muted)}
+.calc{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px}
+.calc output{font:700 1rem Consolas,monospace;color:var(--cy)}
+.result{font:700 1.6rem Consolas,monospace;color:var(--lm);text-shadow:0 0 14px rgba(125,255,176,.5)}
+
+.label{border:1.5px dashed var(--am);border-radius:16px;padding:22px;display:grid;gap:18px;grid-template-columns:auto 1fr;align-items:center;
+  background:linear-gradient(135deg,rgba(255,211,107,.07),rgba(139,92,255,.08));box-shadow:0 0 30px rgba(255,211,107,.12)}
+.seal{width:96px;height:96px;border-radius:50%;border:2px solid var(--am);display:grid;place-items:center;text-align:center;
+  font:700 .62rem Consolas,monospace;letter-spacing:2px;color:var(--am);line-height:1.35;box-shadow:0 0 18px rgba(255,211,107,.4) inset,0 0 18px rgba(255,211,107,.3)}
+@media(max-width:560px){.label{grid-template-columns:1fr}}
+footer{padding:30px 0 60px;color:var(--muted);font-size:.85rem;border-top:1px solid var(--line)}
+@media(prefers-reduced-motion:reduce){*{animation:none!important}}
+@media print{nav,.controls{display:none}body::after{display:none}}
+
+/* ===== windowed layout (v0.4) ===== */
+html,body{height:100%;overflow:hidden}
+.app{display:flex;flex-direction:column;height:100vh;height:100dvh}
+.topbar{flex:none;display:flex;align-items:center;gap:12px;padding:8px 16px;background:rgba(3,5,15,.86);backdrop-filter:blur(8px);border-bottom:1px solid var(--line);z-index:40}
+.brand{font:700 .8rem Consolas,monospace;letter-spacing:3px;color:var(--cy);white-space:nowrap;text-shadow:0 0 10px rgba(53,243,255,.5)}
+.brand span{color:var(--muted)}.brand em{font-style:normal;color:var(--am);border:1px solid rgba(255,211,107,.5);border-radius:5px;padding:1px 6px;margin-left:6px;font-size:.62rem;letter-spacing:1px}
+.tabs{flex:1;display:flex;gap:4px;overflow-x:auto;scrollbar-width:none;min-width:0}
+.tabs::-webkit-scrollbar{display:none}
+.tabs button{white-space:nowrap;background:transparent;border:1px solid transparent;color:var(--muted);font:.72rem Consolas,monospace;letter-spacing:1px;text-transform:uppercase;padding:6px 10px;border-radius:7px;cursor:pointer}
+.tabs button:hover{color:var(--cy);background:rgba(53,243,255,.08)}
+.tabs button.on{color:#021018;background:var(--cy);box-shadow:0 0 14px rgba(53,243,255,.55)}
+.pager{display:flex;align-items:center;gap:8px;flex:none}
+.pager .btn{padding:5px 10px}
+#winCount{color:var(--muted);font-size:.78rem;min-width:56px;text-align:center}
+.wins{flex:1;min-height:0;position:relative}
+.win{position:absolute;inset:0;display:none;padding:10px 18px 14px;overflow:auto}
+.win.active{display:block;animation:winIn .35s ease}
+@keyframes winIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.inner{max-width:1360px;margin:0 auto;height:100%;display:flex;flex-direction:column;min-height:0}
+.win .kicker,.win h2{display:inline-block;vertical-align:baseline}
+.win .kicker{margin:0 12px 6px 0;font-size:.7rem}
+.win h2{border:none;padding:0;margin:0 0 6px;font-size:1.15rem}
+.inner>.kicker+h2{width:auto}
+.win .axes{grid-template-columns:repeat(6,1fr);gap:6px;margin:0 0 8px;flex:none}
+.win .axes li{display:flex;align-items:baseline;gap:6px;padding:4px 8px;white-space:nowrap;overflow:hidden}
+.win .axes b{display:inline}.win .axes em{margin-left:auto}
+.vw .inner>p.muted,.vw .inner>.note{display:none}
+.win .bay{flex:1;min-height:0;grid-template-columns:minmax(0,1fr) 340px;grid-template-rows:minmax(0,1fr);align-items:stretch;gap:12px}
+.win .bay>div:first-child{display:flex;flex-direction:column;gap:8px;min-height:0}
+.win .bay>div:first-child>.stage{flex:1;min-height:0}
+.win .stage{padding:0;min-height:0}
+.win .stage svg,.win .stage canvas{position:absolute;inset:0;width:100%;height:100%;aspect-ratio:auto!important}
+#histoCv{object-fit:contain}
+.win .info{flex:none;margin:0!important;min-height:0;max-height:96px;overflow:auto;font-size:.82rem;padding:8px 10px}
+.win .controls.card{gap:0;padding:8px 12px;overflow:auto;min-height:0}
+.acc{border-bottom:1px solid var(--line);padding:7px 0}
+.acc:last-child{border-bottom:none}
+.acc>h3{margin:0;cursor:pointer;display:block;position:relative;padding-right:20px;user-select:none;font-size:.88rem}
+.acc>h3::after{content:"▸";position:absolute;right:2px;top:0;color:var(--cy);transition:transform .2s}
+.acc.open>h3{margin-bottom:8px;color:var(--cy)}
+.acc.open>h3::after{transform:rotate(90deg)}
+.acc:not(.open)>:not(h3){display:none!important}
+.aboutBox .card{padding:8px 10px;margin:6px 0;background:rgba(0,0,0,.22);box-shadow:none}
+.aboutBox .card p{margin:4px 0 0;font-size:.82rem}
+.aboutBox .stat{font-size:1.15rem}
+.plist{display:grid;grid-template-columns:1fr 1fr;gap:4px}
+.plist .sect{grid-column:1/-1}
+.plist button{margin:0!important;font-size:.72rem!important;padding:5px 8px;line-height:1.25}
+.small{font-size:.86rem}
+.win:not(.vw):not(#cover){font-size:clamp(.92rem,1.95vh,1.2rem)}
+.win:not(.vw) .stat{font-size:clamp(1.6rem,4vh,2.6rem)}
+.win table{font-size:.95em}.win th,.win td{padding:7px 10px}
+.win .grid{margin-top:8px}
+.win ul{margin:6px 0;padding-left:20px}
+.win li{margin:3px 0}
+.cover{justify-content:center}
+.cover h1{font-size:clamp(1.8rem,4.2vw,3.1rem);margin:6px 0 4px}
+.launcher{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;max-width:1100px}
+.launcher button{text-align:left;background:var(--glass);border:1px solid var(--line);border-radius:12px;padding:10px 12px;color:var(--text);cursor:pointer;font:inherit}
+.launcher button:hover{border-color:var(--cy);box-shadow:0 0 18px rgba(53,243,255,.25)}
+.launcher b{display:block;color:var(--cy);font:700 .82rem Consolas,monospace;letter-spacing:1px;text-transform:uppercase}
+.launcher span{font-size:.76rem;color:var(--muted)}
+@media(max-width:900px){
+  .brand span,.brand em{display:none}
+  .win .bay{grid-template-columns:1fr;grid-template-rows:56vh auto;flex:none}
+  .win .axes{grid-template-columns:repeat(3,1fr)}
+  .inner{height:auto}
+}
+
+/* ===== globe-as-home (v0.5) ===== */
+.dock{position:absolute;left:290px;right:12px;bottom:12px;display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end;z-index:3}
+.dockBtn{background:rgba(3,10,24,.78);border:1px solid var(--line);color:var(--text);border-radius:9px;padding:7px 11px;font:.72rem Consolas,monospace;letter-spacing:1px;text-transform:uppercase;cursor:pointer;backdrop-filter:blur(4px)}
+.dockBtn b{color:var(--mg);margin-right:4px}
+.dockBtn:hover{border-color:var(--cy);box-shadow:0 0 16px rgba(53,243,255,.35);color:var(--cy)}
+#geo{display:block!important}
+.win:not(#geo){inset:8px 14px 14px;z-index:6;background:rgba(4,8,20,.8);backdrop-filter:blur(7px);border:1px solid var(--line);border-radius:16px;box-shadow:0 0 70px rgba(0,0,0,.65),0 0 30px rgba(53,243,255,.12)}
+.inner{position:relative}
+.closeW{position:absolute;right:0;top:0;z-index:5;background:rgba(53,243,255,.08);border:1px solid var(--line);color:var(--cy);border-radius:8px;padding:5px 12px;font:.72rem Consolas,monospace;letter-spacing:1px;text-transform:uppercase;cursor:pointer}
+.closeW:hover{background:rgba(53,243,255,.2)}
+.coverTitle{display:block;font-size:clamp(1.25rem,2.5vw,1.9rem);letter-spacing:2px;margin:2px 0 2px}
+#geo .byline{margin:0 0 8px;font-size:.8rem;gap:4px 18px}
+@media(max-width:900px){.dock{left:12px;bottom:56px;justify-content:flex-start}}
+</style>
+</head>
+<body>
+
+<div class="app">
+<div class="topbar">
+  <div class="brand">TRICERATOPS<span> · SPATIAL MATRIX</span> <em>PROTO v0.5</em></div>
+  <div class="tabs" id="tabs"></div>
+  <div class="pager"><button class="btn" id="prevW" aria-label="Previous window">◀</button><span id="winCount" class="mono">01 / 13</span><button class="btn" id="nextW" aria-label="Next window">▶</button></div>
+</div>
+<main class="wins">
+<!-- ================= LAYER 01 GEO ================= -->
+<section class="win vw" id="geo" data-label="Globe"><div class="inner">
+  <div class="kicker">Layer 01 · Geo globe · a holographic 6D multi-spectral anatomical engine</div>
+  <h1 class="coverTitle">The Three-Horned Face: <i>Triceratops</i> &amp; Spatial Matrix</h1>
+  <div class="byline"><span><b>Asia Khan</b></span><span>Behavioural UX Researcher &amp; 3D Spatial Architect</span><span>Hon. BA, McMaster University</span><span><a href="mailto:asiaaamirkhan@outlook.com">asiaaamirkhan@outlook.com</a></span></div>
+  <ol class="axes"><li><b>1 · X</b><span>lon</span><em id="gX">—</em></li><li><b>2 · Y</b><span>lat</span><em id="gY">—</em></li><li><b>3 · Z</b><span>zoom</span><em id="gZ">—</em></li><li><b>4 · T</b><span>time</span><em id="gT">—</em></li><li><b>5 · λ</b><span>band</span><em id="gL">—</em></li><li><b>6 · C</b><span>chem</span><em id="gC">—</em></li></ol>
+  <div class="bay">
+    <div>
+      <div class="stage">
+        <span class="stamp">DRAG · ZOOM</span>
+        <div class="hud" id="geoHud">GLOBE · ORTHOGRAPHIC<br>3D</div>
+        <canvas id="cvGeo" aria-label="Interactive globe showing Triceratops fossil formations in western North America and partner institutions"></canvas>
+        <div class="dpad">
+          <button class="btn" id="gZin" title="Zoom in">+</button><button class="btn" id="gUp" title="North">▲</button><button class="btn" id="gZout" title="Zoom out">−</button>
+          <button class="btn" id="gLeft" title="West">◀</button><button class="btn" id="gHome" title="Reset">⌂</button><button class="btn" id="gRight" title="East">▶</button><button class="btn" id="gDown" title="South">▼</button>
+        </div>
+        <div class="dock" id="dock"></div>
+      </div>
+      <div class="info" id="geoInfo" style="margin-top:12px"></div>
+    </div>
+    <div class="controls card">
+      <div>
+        <h3>Dimensions</h3>
+        <div class="seg" id="geoDim"><button class="on" data-d="3">3D</button><button data-d="4">4D</button><button data-d="5">5D</button><button data-d="6">6D</button></div>
+        <div class="ev" id="geoDimNote" style="margin-top:6px"></div>
+      </div>
+      <div>
+        <h3>T · Time: <span id="geoTTxt">67.0</span> Ma</h3>
+        <input type="range" id="geoT" min="66" max="68" step="0.1" value="67" aria-label="Time in millions of years ago">
+        <div class="ev">4D and up: the Western Interior Seaway retreats as time moves toward 66 Ma (stylised).</div>
+      </div>
+      <div>
+        <h3>λ · Spectral band</h3>
+        <div class="seg bandSeg"><button class="on" data-b="visible">Visible</button><button data-b="thermal">Thermal</button><button data-b="xray">X-ray / CT</button><button data-b="uv">UV</button></div>
+      </div>
+      <div>
+        <h3>C · Chemistry focus</h3>
+        <div class="seg chemSeg"><button class="on" data-c="hap">Hydroxyapatite</button><button data-c="col">Collagen</button><button data-c="ker">Keratin</button><button data-c="iso">Isotope fidelity</button></div>
+      </div>
+      <div>
+        <h3>Display</h3>
+        <label class="ck"><input type="checkbox" id="gMark" checked> Markers</label>
+        <label class="ck"><input type="checkbox" id="gRoute" checked> Pitch routes</label>
+        <label class="ck"><input type="checkbox" id="gGrat" checked> Graticule</label>
+        <label class="ck"><input type="checkbox" id="gLab" checked> Labels</label>
+      </div>
+      <div>
+        <h3>Legend</h3>
+        <div class="ev"><span class="dot" style="color:#7dffb0;background:#7dffb0"></span> Fossil formation (<i>Triceratops</i> range)<br>
+        <span class="dot" style="color:#ffd36b;background:#ffd36b"></span> Target institution<br>
+        <span class="dot" style="color:#ff4de1;background:#ff4de1"></span> Proposed pitch route (Hell Creek → partner)<br>
+        <span class="dot" style="color:#5aa0ff;background:#5aa0ff"></span> Western Interior Seaway (4D+)<br>
+        Land and water recolour in 5D and 6D.</div>
+      </div>
+      <div>
+        <h3>Places</h3>
+        <div class="plist" id="geoPlaces"></div>
+      </div>
+    </div>
+  </div>
+</div></section>
+
+<!-- ================= 3D SKULL ================= -->
+<section class="win vw" id="skull" data-label="Skull"><div class="inner">
+  <div class="kicker">Layer 02 · Anatomical engine</div>
+  <h2>Inside the skull, in six dimensions</h2><ol class="axes"><li><b>1 · X</b><span>yaw</span><em id="aX">—</em></li><li><b>2 · Y</b><span>pitch</span><em id="aY">—</em></li><li><b>3 · Z</b><span>cut</span><em id="aZ">—</em></li><li><b>4 · T</b><span>age</span><em id="aT">—</em></li><li><b>5 · λ</b><span>band</span><em id="aL">—</em></li><li><b>6 · C</b><span>chem</span><em id="aC">—</em></li></ol>
+  <p class="muted">Drag to rotate (X yaw, Y pitch), slice it open (Z), age it (T), switch the spectral band (λ) and pick a chemistry to spotlight (C).</p>
+  <div class="bay">
+    <div class="stage">
+      <span class="stamp">DRAG TO ROTATE</span>
+      <div class="hud" id="skullHud">SKULL · WIREFRAME<br>AGE 16 YRS</div>
+      <canvas id="cvSkull" aria-label="Rotatable 3D wireframe model of a Triceratops skull"></canvas>
+    </div>
+    <div class="controls card">
+      <div>
+        <h3>4D · Age: <span class="ageTxt">16</span> yrs · <span class="stageTxt">Adult</span></h3>
+        <input type="range" class="ageSl" min="0" max="25" step="0.5" value="16" aria-label="Age in years">
+      </div>
+      <div>
+        <h3>Z · Cut plane: <span id="cutSkullTxt">0</span>%</h3>
+        <input type="range" id="cutSkull" min="0" max="100" value="0" aria-label="Cut plane depth">
+        <div class="ev">Slices away the near side to reveal the tooth rows and brain cavity (inferred).</div>
+      </div>
+      <div>
+        <h3>λ · Spectral band</h3>
+        <div class="seg bandSeg"><button class="on" data-b="visible">Visible</button><button data-b="thermal">Thermal</button><button data-b="xray">X-ray / CT</button><button data-b="uv">UV</button></div>
+      </div>
+      <div>
+        <h3>C · Chemistry focus</h3>
+        <div class="seg chemSeg"><button class="on" data-c="hap">Hydroxyapatite</button><button data-c="col">Collagen</button><button data-c="ker">Keratin</button><button data-c="iso">Isotope fidelity</button></div>
+      </div>
+      <div>
+        <h3>Chemistry readout</h3>
+        <div class="bars" id="chemBars"></div>
+        <div class="ev">Illustrative relative values — not measured data. Enamel preserves original isotope signals best.</div>
+      </div>
+      <div>
+        <h3>View mode</h3>
+        <div class="seg" id="skullMode"><button class="on" data-m="wire">Wire</button><button data-m="pts">Points</button><button data-m="both">Both</button></div>
+      </div>
+      <div>
+        <h3>Layers</h3>
+        <label class="ck"><input type="checkbox" data-view="skull" data-group="shell" checked> Skull &amp; beak</label>
+        <label class="ck"><input type="checkbox" data-view="skull" data-group="frill" checked> Frill</label>
+        <label class="ck"><input type="checkbox" data-view="skull" data-group="grooves" checked> Vascular grooves (inferred)</label>
+        <label class="ck"><input type="checkbox" data-view="skull" data-group="horns" checked> Horns</label>
+        <label class="ck"><input type="checkbox" data-view="skull" data-group="teeth" checked> Tooth rows</label>
+        <label class="ck"><input type="checkbox" data-view="skull" data-group="brain" checked> Brain cavity (inferred)</label>
+      </div>
+      <div>
+        <h3>Options</h3>
+        <label class="ck"><input type="checkbox" id="skullAuto" checked> Auto-rotate</label>
+        <label class="ck"><input type="checkbox" id="skullScan" checked> Scan plane</label>
+        <div class="ev">Age is linked across layers — watch the horns lengthen and the frill grow.</div>
+      </div>
+    </div>
+  </div>
+  <div class="grid g3" style="margin-top:16px">
+    <div class="card"><h3>Frill</h3><p class="muted">Solid bone shield (unlike the windowed frill of <i>Torosaurus</i>); likely display and recognition. Surface grooves suggest blood vessels and skin cover.</p></div>
+    <div class="card"><h3>Horns</h3><p class="muted">Bony cores sheathed in keratin. Healed lesions suggest they were used in contests between individuals.</p></div>
+    <div class="card"><h3>Beak &amp; jaws</h3><p class="muted">A toothless parrot-like beak cropped plants; powerful jaw muscles ran up under the frill.</p></div>
+  </div>
+</div></section>
+
+<!-- ================= HOLOGRAM BAY ================= -->
+<section class="win vw" id="bay" data-label="Body"><div class="inner">
+  <div class="kicker">Layer 03 · Whole-body layers</div>
+  <h2>Inside the animal, in six dimensions</h2><ol class="axes"><li><b>1 · X</b><span>length</span><em id="bX">—</em></li><li><b>2 · Y</b><span>mass</span><em id="bY">—</em></li><li><b>3 · Z</b><span>cutaway</span><em id="bZ">—</em></li><li><b>4 · T</b><span>age</span><em id="bT">—</em></li><li><b>5 · λ</b><span>band</span><em id="bL">—</em></li><li><b>6 · C</b><span>chem</span><em id="bC">—</em></li></ol>
+  <p class="muted">Toggle body systems (5D), scrub through life (4D), filter by evidence (6D) and click the pulsing hotspots for health findings.</p>
+  <div class="bay">
+    <div>
+      <div class="stage">
+        <span class="stamp">PROTOTYPE v0.5</span>
+        <svg id="side" viewBox="0 0 860 430" role="img" aria-label="Holographic side view of Triceratops with layers for skin, skeleton, teeth, vascular system, physiology and health hotspots">
+          <defs>
+            <linearGradient id="holoG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="rgba(53,243,255,.38)"/><stop offset="1" stop-color="rgba(139,92,255,.18)"/></linearGradient>
+            <linearGradient id="sweepG" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="rgba(53,243,255,0)"/><stop offset="1" stop-color="rgba(53,243,255,.55)"/></linearGradient>
+            <pattern id="scanP" width="6" height="4" patternUnits="userSpaceOnUse"><rect width="6" height="1" fill="rgba(255,255,255,.14)"/></pattern>
+            <filter id="glow" x="-10%" y="-10%" width="120%" height="120%"><feGaussianBlur stdDeviation="2.2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+            <g id="arteries" fill="none" stroke-linecap="round">
+              <path d="M395 245 C395 205 370 195 335 205"/>
+              <path d="M335 205 C420 178 560 172 640 205"/>
+              <path d="M335 205 C305 190 288 160 272 140"/>
+              <path d="M285 160 C298 112 326 90 338 66"/>
+              <path d="M292 150 C350 132 392 112 408 96"/>
+              <path d="M275 168 C235 150 195 132 150 120"/>
+              <path d="M255 215 C215 210 180 200 150 186"/>
+              <path d="M395 262 C375 290 358 310 350 372"/>
+              <path d="M420 262 C415 300 412 330 410 372"/>
+              <path d="M600 215 C590 270 568 320 566 372"/>
+              <path d="M640 215 C640 270 640 330 640 372"/>
+              <path d="M640 205 C700 215 740 255 780 298"/>
+            </g>
+            <g id="veins" fill="none" stroke-linecap="round">
+              <path d="M345 215 C440 188 560 184 628 212"/>
+              <path d="M300 160 C312 118 340 98 352 76"/>
+              <path d="M358 268 C366 300 360 340 358 372"/>
+              <path d="M606 220 C598 275 578 322 576 372"/>
+              <path d="M300 205 C320 235 360 255 392 262"/>
+            </g>
+          </defs>
+
+          <!-- hologram projector base -->
+          <line x1="0" y1="382" x2="860" y2="382" stroke="rgba(53,243,255,.25)"/>
+          <ellipse class="ring" cx="450" cy="396" rx="340" ry="16"/>
+          <ellipse class="ring" cx="450" cy="396" rx="270" ry="12" style="animation-direction:reverse"/>
+          <ellipse class="ring" cx="450" cy="396" rx="190" ry="8"/>
+
+          <g id="animal" filter="url(#glow)">
+
+            <!-- SKIN -->
+            <g class="layer" data-layer="skin" data-evidence="direct">
+              <rect class="hb2" x="400" y="270" width="42" height="110" rx="16"/>
+              <rect class="hb2" x="615" y="270" width="48" height="110" rx="18"/>
+              <path class="hb" d="M630 205 C700 200 750 245 795 305 C740 285 690 282 630 287Z"/>
+              <ellipse class="hb" cx="470" cy="235" rx="185" ry="92"/>
+              <ellipse cx="470" cy="235" rx="185" ry="92" fill="url(#scanP)"/>
+              <rect class="hb" x="325" y="270" width="48" height="112" rx="18"/>
+              <rect class="hb" x="545" y="272" width="55" height="110" rx="20"/>
+              <path class="hf" d="M258 178 C232 105 268 48 340 42 C412 48 448 108 424 192Z"/>
+              <path d="M258 178 C232 105 268 48 340 42 C412 48 448 108 424 192" fill="none" stroke="#c9b6ff" stroke-width="7" stroke-linecap="round" stroke-dasharray="1 15"/>
+              <path class="hb" d="M95 238 C98 214 128 200 160 196 L258 176 L304 214 C294 262 244 288 202 282 C150 276 104 262 95 238Z"/>
+              <path class="hh" d="M148 202 L132 160 L172 196Z"/>
+              <path d="M95 238 C84 226 92 210 114 208 L132 228Z" fill="rgba(255,211,107,.55)" stroke="#ffd36b"/>
+              <g id="brow"><path class="hh" d="M232 178 L126 108 L200 200Z"/></g>
+              <circle cx="205" cy="203" r="7" fill="#021018" stroke="#35f3ff"/><circle cx="207" cy="201" r="2" fill="#fff"/>
+            </g>
+
+            <!-- PHYSIOLOGY -->
+            <g class="layer" data-layer="physio" data-evidence="inferred" style="display:none">
+              <ellipse cx="420" cy="205" rx="58" ry="38" fill="rgba(255,120,170,.35)" stroke="#ff8ab8"/>
+              <ellipse cx="520" cy="262" rx="92" ry="46" fill="rgba(255,211,107,.30)" stroke="#ffd36b"/>
+              <circle cx="395" cy="254" r="17" fill="rgba(255,93,115,.55)" stroke="#ff8a9a"><animate attributeName="r" values="15;19;15" dur="1.1s" repeatCount="indefinite"/></circle>
+              <ellipse cx="258" cy="238" rx="38" ry="27" fill="rgba(255,140,60,.35)" stroke="#ff9a4d"/>
+              <ellipse cx="346" cy="236" rx="30" ry="36" fill="rgba(255,140,60,.28)" stroke="#ff9a4d"/>
+              <ellipse cx="590" cy="250" rx="38" ry="42" fill="rgba(255,140,60,.28)" stroke="#ff9a4d"/>
+              <ellipse cx="238" cy="196" rx="20" ry="13" fill="rgba(160,120,255,.55)" stroke="#c9b6ff"/>
+            </g>
+
+            <!-- SKELETON -->
+            <g class="layer" data-layer="skeleton" data-evidence="direct" style="display:none">
+              <g fill="none" stroke="#e8fbff" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M95 238 C98 214 128 200 160 196 L258 176 L304 214 C294 262 244 288 202 282 C150 276 104 262 95 238Z" stroke-width="2.4"/>
+                <path d="M258 178 C232 105 268 48 340 42 C412 48 448 108 424 192Z" stroke-width="2.4"/>
+                <path d="M148 202 L132 160 L172 196Z M232 178 L126 108 L200 200Z" stroke-width="2"/>
+                <circle cx="206" cy="203" r="15" stroke-width="2"/>
+                <path d="M300 205 C370 152 520 142 640 200 C700 230 745 272 790 302" stroke-width="8" stroke-dasharray="7 5"/>
+                <path d="M350 168 Q320 240 342 300 M390 160 Q360 235 382 298 M430 156 Q400 232 422 296 M470 155 Q440 232 462 296 M510 156 Q480 232 502 296 M550 160 Q520 236 542 296 M590 168 Q560 238 580 292" stroke-width="3"/>
+                <path d="M352 268 L346 326 L352 378 M402 270 L406 326 L410 378 M572 270 L560 322 L570 378 M628 270 L636 322 L640 378" stroke-width="6"/>
+                <path d="M560 205 L640 205 L650 262" stroke-width="4"/>
+              </g>
+            </g>
+
+            <!-- TEETH -->
+            <g class="layer" data-layer="teeth" data-evidence="direct" style="display:none">
+              <path d="M135 258 L218 274" stroke="#fff6cf" stroke-width="9" stroke-dasharray="3 3"/>
+              <path d="M140 250 L214 266" stroke="#ffd36b" stroke-width="5" stroke-dasharray="3 3" opacity=".75"/>
+            </g>
+
+            <!-- VASCULAR -->
+            <g class="layer" data-layer="vascular" data-evidence="inferred" style="display:none">
+              <use href="#arteries" stroke="#ff4d6d" stroke-width="3.6"/>
+              <use href="#veins" stroke="#4f9bff" stroke-width="3"/>
+              <use href="#arteries" class="flowline" stroke="#fff" stroke-width="1.5"/>
+              <use href="#veins" class="flowline" stroke="#cfe4ff" stroke-width="1.2" style="animation-direction:reverse"/>
+            </g>
+
+            <!-- HEALTH HOTSPOTS -->
+            <g class="layer" data-layer="health" data-evidence="direct" style="display:none">
+              <g class="hs" data-i="0" transform="translate(432 125)"><circle r="9" fill="rgba(255,93,115,.25)" stroke="#ff5d73"><animate attributeName="r" values="7;14;7" dur="1.8s" repeatCount="indefinite"/></circle><circle r="3.5" fill="#ff5d73"/></g>
+              <g class="hs" data-i="1" transform="translate(152 128)"><circle r="9" fill="rgba(255,93,115,.25)" stroke="#ff5d73"><animate attributeName="r" values="7;14;7" dur="2.1s" repeatCount="indefinite"/></circle><circle r="3.5" fill="#ff5d73"/></g>
+              <g class="hs" data-i="2" transform="translate(300 98)"><circle r="9" fill="rgba(255,211,107,.25)" stroke="#ffd36b"><animate attributeName="r" values="7;14;7" dur="1.9s" repeatCount="indefinite"/></circle><circle r="3.5" fill="#ffd36b"/></g>
+              <g class="hs" data-i="3" transform="translate(470 232)"><circle r="9" fill="rgba(255,211,107,.25)" stroke="#ffd36b"><animate attributeName="r" values="7;14;7" dur="2.3s" repeatCount="indefinite"/></circle><circle r="3.5" fill="#ffd36b"/></g>
+              <g class="hs" data-i="4" transform="translate(176 268)"><circle r="9" fill="rgba(125,255,176,.25)" stroke="#7dffb0"><animate attributeName="r" values="7;14;7" dur="2s" repeatCount="indefinite"/></circle><circle r="3.5" fill="#7dffb0"/></g>
+              <g class="hs" data-i="5" transform="translate(572 322)"><circle r="9" fill="rgba(53,243,255,.25)" stroke="#35f3ff"><animate attributeName="r" values="7;14;7" dur="2.4s" repeatCount="indefinite"/></circle><circle r="3.5" fill="#35f3ff"/></g>
+            </g>
+          </g>
+
+          <!-- scan sweep (screen space) -->
+          <g class="layer" data-layer="scan" data-evidence="direct">
+            <rect y="24" width="46" height="358" fill="url(#sweepG)"><animate attributeName="x" from="40" to="810" dur="5s" repeatCount="indefinite"/></rect>
+          </g>
+
+          <g font-family="Consolas,monospace" font-size="12" fill="#8fb4cc">
+            <line x1="60" y1="414" x2="224" y2="414" stroke="#8fb4cc" stroke-width="1.5"/>
+            <line x1="60" y1="408" x2="60" y2="420" stroke="#8fb4cc"/><line x1="224" y1="408" x2="224" y2="420" stroke="#8fb4cc"/>
+            <text x="238" y="418">≈ 2 m (adult scale)</text>
+          </g>
+        </svg>
+      </div>
+      <div class="info" id="hsInfo" style="margin-top:12px"><b>Health hotspots:</b> switch on the <i>Health hotspots</i> layer, then click a pulsing marker.</div>
+    </div>
+
+    <div class="controls card">
+      <div>
+        <h3>5D · Body-system layers</h3>
+        <label class="ck"><input type="checkbox" data-layer="skin" checked> <span class="dot" style="color:#35f3ff;background:#35f3ff"></span> Hologram skin</label>
+        <label class="ck"><input type="checkbox" data-layer="skeleton" checked> <span class="dot" style="color:#e8fbff;background:#e8fbff"></span> Skeleton</label>
+        <label class="ck"><input type="checkbox" data-layer="teeth"> <span class="dot" style="color:#ffd36b;background:#ffd36b"></span> Teeth</label>
+        <label class="ck"><input type="checkbox" data-layer="vascular" checked> <span class="dot" style="color:#ff4d6d;background:#ff4d6d"></span> Vascular flow</label>
+        <label class="ck"><input type="checkbox" data-layer="physio"> <span class="dot" style="color:#ff8ab8;background:#ff8ab8"></span> Organs &amp; muscle</label>
+        <label class="ck"><input type="checkbox" data-layer="health"> <span class="dot" style="color:#ff5d73;background:#ff5d73"></span> Health hotspots</label>
+        <label class="ck"><input type="checkbox" data-layer="scan" checked> <span class="dot" style="color:#8b5cff;background:#8b5cff"></span> Scan sweep</label>
+      </div>
+      <div>
+        <h3>4D · Age: <span class="ageTxt">16</span> yrs · <span class="stageTxt">Adult</span></h3>
+        <input type="range" class="ageSl" min="0" max="25" step="0.5" value="16" aria-label="Age in years">
+        <div class="readout" style="margin-top:8px">
+          <div><b id="rLen">—</b><span>Length</span></div>
+          <div><b id="rMass">—</b><span>Mass</span></div>
+          <div><b id="rHorn">—</b><span>Horns</span></div>
+        </div>
+        <div class="ev" style="margin-top:6px">Illustrative growth model. Juvenile brow horns are short and curve back; adults grow long forward-pointing horns (Horner &amp; Goodwin 2006).</div>
+      </div>
+      <div>
+        <h3>6D · Evidence filter</h3>
+        <div class="seg" id="filter">
+          <button class="on" data-f="all">All</button><button data-f="direct">Direct</button><button data-f="inferred">Inferred</button>
+        </div>
+        <div class="ev" style="margin-top:8px"><span class="tag t-d">DIRECT</span> seen in fossils <span class="tag t-i">INFERRED</span> from living relatives &amp; bone features.</div>
+      </div>
+      <div>
+        <h3>Z · Cutaway depth: <span id="cutBodyTxt">0</span>%</h3>
+        <input type="range" id="cutBody" min="0" max="100" value="0" aria-label="Cutaway depth">
+        <div class="ev">Fades the skin so skeleton and organs show through.</div>
+      </div>
+      <div>
+        <h3>λ · Spectral band</h3>
+        <div class="seg bandSeg"><button class="on" data-b="visible">Visible</button><button data-b="thermal">Thermal</button><button data-b="xray">X-ray / CT</button><button data-b="uv">UV</button></div>
+      </div>
+      <div>
+        <h3>C · Chemistry focus</h3>
+        <div class="seg chemSeg"><button class="on" data-c="hap">Hydroxyapatite</button><button data-c="col">Collagen</button><button data-c="ker">Keratin</button><button data-c="iso">Isotope fidelity</button></div>
+        
+      </div>
+    </div>
+  </div>
+</div></section>
+
+<!-- ================= TEETH ================= -->
+<section class="win vw" id="teeth" data-label="Teeth"><div class="inner">
+  <div class="kicker">Layer 04 · Teeth lab</div>
+  <h2>3D tooth &amp; dental battery</h2><ol class="axes"><li><b>1 · X</b><span>yaw</span><em id="tX">—</em></li><li><b>2 · Y</b><span>pitch</span><em id="tY">—</em></li><li><b>3 · Z</b><span>wear</span><em id="tZ">—</em></li><li><b>4 · T</b><span>age</span><em id="tT">—</em></li><li><b>5 · λ</b><span>band</span><em id="tL">—</em></li><li><b>6 · C</b><span>chem</span><em id="tC">—</em></li></ol>
+  <div class="bay">
+    <div class="stage">
+      <span class="stamp">DRAG TO ROTATE</span>
+      <div class="hud" id="toothHud">TOOTH · SINGLE<br>WEAR 30%</div>
+      <canvas id="cvTooth" aria-label="Rotatable 3D model of a Triceratops tooth or dental battery"></canvas>
+    </div>
+    <div class="controls card">
+      <div>
+        <h3>Model</h3>
+        <div class="seg" id="toothMode"><button class="on" data-m="single">Single tooth</button><button data-m="battery">Dental battery</button></div>
+      </div>
+      <div>
+        <h3>Wear · <span id="wearTxt">30</span>%</h3>
+        <input type="range" id="wear" min="0" max="100" value="30" aria-label="Tooth wear">
+        <div class="ev">Slide to wear down the shearing surface. In the battery, fresh teeth wait beneath each worn one.</div>
+      </div>
+      <div>
+        <h3>Options</h3>
+        <label class="ck"><input type="checkbox" id="toothAuto" checked> Auto-rotate</label>
+        <label class="ck"><input type="checkbox" id="toothScan" checked> Scan plane</label>
+      </div>
+      <div>
+        <h3>λ · Spectral band</h3>
+        <div class="seg bandSeg"><button class="on" data-b="visible">Visible</button><button data-b="thermal">Thermal</button><button data-b="xray">X-ray / CT</button><button data-b="uv">UV</button></div>
+      </div>
+      <div>
+        <h3>C · Chemistry focus</h3>
+        <div class="seg chemSeg"><button class="on" data-c="hap">Hydroxyapatite</button><button data-c="col">Collagen</button><button data-c="ker">Keratin</button><button data-c="iso">Isotope fidelity</button></div>
+        
+      </div>
+      <div class="info"><b>Reading teeth:</b> wear facets show how jaws sheared; microscopic scratches (microwear) and isotopes indicate food toughness and environment.</div>
+    </div>
+  </div>
+  <div class="grid g3" style="margin-top:16px">
+    <div class="card"><div class="stat">~400–800<small>teeth in total, in tooth columns</small></div></div>
+    <div class="card"><div class="stat">2 roots<small>per tooth, anchoring each in its slot</small></div></div>
+    <div class="card"><div class="stat">∞ renewal<small>teeth replaced continuously through life</small></div></div>
+  </div>
+</div></section>
+
+<!-- ================= HISTOLOGY ================= -->
+<section class="win vw" id="histo" data-label="Histology"><div class="inner">
+  <div class="kicker">Layer 05 · Bone histology lab</div>
+  <h2>Thin-section simulator</h2><ol class="axes"><li><b>1 · X</b><span>cortex</span><em id="hX">—</em></li><li><b>2 · Y</b><span>LAGs</span><em id="hY">—</em></li><li><b>3 · Z</b><span>remodelled</span><em id="hZ">—</em></li><li><b>4 · T</b><span>age</span><em id="hT">—</em></li><li><b>5 · λ</b><span>band</span><em id="hL">—</em></li><li><b>6 · C</b><span>chem</span><em id="hC">—</em></li></ol>
+  <div class="note">Procedurally generated schematic of a long-bone cross-section — <b>not</b> a real microscope image. It shows the features palaeohistologists read; for genuine thin-section images use the published papers and museum collections in the literature list.</div>
+  <div class="bay" style="margin-top:16px">
+    <div class="stage">
+      <span class="stamp">SCHEMATIC · NOT TO SCALE</span>
+      <canvas id="histoCv" width="760" height="760" style="aspect-ratio:1/1;cursor:default" aria-label="Procedural schematic of a bone thin section showing growth lines, osteons and vascular canals"></canvas>
+    </div>
+    <div class="controls card">
+      <div>
+        <h3>Light mode</h3>
+        <div class="seg" id="histoMode"><button class="on" data-m="trans">Transmitted</button><button data-m="pol">Polarised</button></div>
+      </div>
+      <div>
+        <h3>4D · Age: <span class="ageTxt">16</span> yrs · <span class="stageTxt">Adult</span></h3>
+        <input type="range" class="ageSl" min="0" max="25" step="0.5" value="16" aria-label="Age in years">
+      </div>
+      <div>
+        <h3>λ · Spectral band</h3>
+        <div class="seg bandSeg"><button class="on" data-b="visible">Visible</button><button data-b="thermal">Thermal</button><button data-b="xray">X-ray / CT</button><button data-b="uv">UV</button></div>
+      </div>
+      <div>
+        <h3>C · Chemistry focus</h3>
+        <div class="seg chemSeg"><button class="on" data-c="hap">Hydroxyapatite</button><button data-c="col">Collagen</button><button data-c="ker">Keratin</button><button data-c="iso">Isotope fidelity</button></div>
+      </div>
+      <div><h3>Readout</h3><label class="ck"><input type="checkbox" id="histoAnn" checked> Numbered annotations</label>
+      <div class="readout">
+        <div><b id="hLag">—</b><span>LAGs seen</span></div>
+        <div><b id="hLost">—</b><span>Erased</span></div>
+        <div><b id="hEfs">—</b><span>EFS</span></div>
+      </div>
+      <div class="ev">Linked to the age slider. Older animals show more growth lines, more internal remodelling and, at maturity, a tightly packed outer band.</div></div>
+      <div><h3>Legend</h3><ol class="legend" style="columns:1">
+        <li><b>Medullary cavity</b> — marrow space with trabeculae</li>
+        <li><b>Secondary osteon</b> — remodelled Haversian system with cement line</li>
+        <li><b>Primary osteon / vascular canal</b> — in fast-growing woven-parallel (fibrolamellar-type) bone</li>
+        <li><b>LAG</b> — line of arrested growth, roughly one per growth pause</li>
+        <li><b>Osteocyte lacunae</b> — tiny cell cavities</li>
+        <li><b>EFS</b> — external fundamental system: growth has slowed or stopped</li>
+      </ol></div>
+    </div>
+  </div>
+  <div class="grid g3" style="margin-top:16px">
+    <div class="card"><h3>What it tells us</h3><p class="muted">Age at death, growth rate, when maturity was reached, and how the animal's body responded to stress or injury.</p></div>
+    <div class="card"><h3>Caveat</h3><p class="muted">Remodelling erases the earliest growth lines, so counts underestimate true age; researchers correct for this by comparing bones across a growth series.</p></div>
+    <div class="card"><h3>Pathology under the lens</h3><p class="muted">Infection or healed trauma shows up as disorganised bone, extra vascular canals and reactive new bone.</p></div>
+  </div>
+</div></section>
+
+<!-- ================= HEALTH ================= -->
+<section class="win" id="health" data-label="Health"><div class="inner">
+  <div class="kicker">Layer 06 · Health</div>
+  <h2>Health issues &amp; palaeopathology</h2>
+  <table>
+    <tr><th>Condition</th><th>What the bones show</th><th>Confidence</th></tr>
+    <tr><td>Bite wounds from predators</td><td>Healed tooth-mark traces on horns, frill and bones matching tyrannosaur teeth — the animal survived.</td><td><span class="tag t-d">DIRECT</span></td></tr>
+    <tr><td>Combat injuries</td><td>Lesions on the squamosal and horn cores consistent with horn-locking between individuals.</td><td><span class="tag t-i">PROBABLE</span></td></tr>
+    <tr><td>Fractures &amp; healed trauma</td><td>Remodelled bone on horns, ribs and limb elements.</td><td><span class="tag t-d">DIRECT</span></td></tr>
+    <tr><td>Infection-type lesions</td><td>Pitted, swollen or porous surfaces reported in ceratopsians generally; diagnosis is case-by-case.</td><td><span class="tag t-i">CASE-DEPENDENT</span></td></tr>
+    <tr><td>Cancer</td><td>A malignant bone tumour is documented in a relative (<i>Centrosaurus</i>, Alberta; Ekhtiari et al. 2020). Not firmly confirmed for <i>Triceratops</i>.</td><td><span class="tag t-s">RELATIVE ONLY</span></td></tr>
+    <tr><td>Environmental stress</td><td>End-Cretaceous climate and ecosystem instability affected the whole community.</td><td><span class="tag t-i">INFERRED</span></td></tr>
+  </table>
+</div></section>
+
+<!-- ================= GROWTH & POPULATION ================= -->
+<section class="win" id="growth" data-label="Growth"><div class="inner">
+  <div class="kicker">Layer 07 · Growth</div>
+  <h2>Growth curve &amp; population model</h2>
+  <div class="grid g2">
+    <div class="card">
+      <h3>Growth (4D–6D)</h3>
+      <canvas id="growthCv" width="700" height="320" style="width:100%;height:auto"></canvas>
+      <small>Illustrative logistic curve; shaded band shows widening uncertainty. Marker follows the age slider.</small>
+    </div>
+    <div class="card">
+      <h3>Population estimate</h3>
+      <div class="note" style="margin-bottom:12px">Illustrative model using Damuth's-law logic and the approach of Marshall et al. (2021) for <i>T. rex</i>. Change the assumptions to see sensitivity.</div>
+      <div class="calc">
+        <label>Density /km²: <output id="oDen">0.05</output><input type="range" id="den" min="0.01" max="0.3" step="0.01" value="0.05"></label>
+        <label>Area (000 km²): <output id="oArea">500</output><input type="range" id="area" min="100" max="1500" step="50" value="500"></label>
+        <label>Lifespan (Myr): <output id="oLife">2</output><input type="range" id="life" min="0.5" max="3" step="0.1" value="2"></label>
+        <label>Generation (yrs): <output id="oGen">15</output><input type="range" id="gen" min="8" max="30" step="1" value="15"></label>
+      </div>
+      <p class="muted" style="margin:14px 0 2px">Standing population at one time</p><div class="result" id="rStand">—</div>
+      <p class="muted" style="margin:10px 0 2px">Total individuals over the species' lifespan</p><div class="result" id="rTotal">—</div>
+      <small>In the Hell Creek Formation <i>Triceratops</i> is roughly 40% of large dinosaur fossils (Horner et al. 2011).</small>
+    </div>
+  </div>
+</div></section>
+
+<!-- ================= FACTS ================= -->
+<section class="win" id="facts" data-label="Facts"><div class="inner">
+  <div class="kicker">Layer 08 · Facts</div>
+  <h2>Key facts, diet &amp; skeletal analysis</h2>
+  <div class="grid g3">
+    <div class="card"><div class="stat">~8–9 m<small>body length</small></div></div>
+    <div class="card"><div class="stat">~6–12 t<small>estimated mass</small></div></div>
+    <div class="card"><div class="stat">~2–2.5 m<small>largest skull lengths</small></div></div>
+    <div class="card"><div class="stat">68–66 Ma<small>Maastrichtian</small></div></div>
+  </div>
+  <ul>
+    <li>Name means "three-horned face" (Marsh, 1889); <i>T. horridus</i> and <i>T. prorsus</i> are widely recognised.</li>
+    <li>It shared its world with <i>Tyrannosaurus</i>; healed bite marks show some prey survived.</li>
+    <li>Skin impressions show large polygonal scales with scattered bigger bumps.</li>
+    <li>Whether <i>Torosaurus</i> is an old <i>Triceratops</i> is debated (Scannella &amp; Horner 2010 vs Longrich &amp; Field 2012).</li>
+    <li><b>Diet:</b> low-growing ferns, cycads, palms and flowering shrubs, cropped by the beak and sliced by the tooth batteries.</li>
+  </ul>
+  <p class="muted">Strictly, bioarchaeology studies human remains; for dinosaurs the same toolkit sits under palaeo-osteology and palaeopathology — bone histology, CT and photogrammetry, tooth microwear, isotopes, taphonomy and pathology surveys.</p>
+</div></section>
+
+<section class="win" id="matrix" data-label="Matrix"><div class="inner">
+  <div class="kicker">Matrix key</div>
+  <h2>The six axes, layer by layer</h2>
+  <table>
+    <tr><th>Axis</th><th>L01 Geo globe</th><th>L02 Anatomical engine</th><th>L03 Whole body</th><th>L04 Teeth</th><th>L05 Histology</th></tr>
+    <tr><td><b>1 · X</b></td><td>Longitude</td><td>Yaw</td><td>Length</td><td>Yaw</td><td>Cortex thickness</td></tr>
+    <tr><td><b>2 · Y</b></td><td>Latitude</td><td>Pitch</td><td>Mass</td><td>Pitch</td><td>Growth lines (LAGs)</td></tr>
+    <tr><td><b>3 · Z</b></td><td>Zoom</td><td>Cut plane</td><td>Cutaway depth</td><td>Wear</td><td>Remodelled bone</td></tr>
+    <tr><td><b>4 · T</b></td><td>Time (68–66 Ma)</td><td colspan="4">Age of the animal (0–25 years)</td></tr>
+    <tr><td><b>5 · λ</b></td><td colspan="5">Spectral band: Visible · Thermal · X-ray / CT · UV (visual recolouring, not measurements)</td></tr>
+    <tr><td><b>6 · C</b></td><td colspan="5">Chemistry focus: Hydroxyapatite · Collagen · Keratin · Isotope fidelity</td></tr>
+  </table>
+</div></section>
+
+<section class="win" id="notes" data-label="Notes"><div class="inner">
+  <div class="kicker">Notes</div>
+  <h2>Disclaimers &amp; sources</h2>
+  <div class="grid g2" style="margin-top:12px">
+    <div class="card"><h3>What is illustrative</h3><ul class="muted small">
+    <li>The chemistry bars are illustrative, not measured values.</li>
+    <li>Geography is approximate: the land outline and the Western Interior Seaway are stylised.</li>
+    <li>Anatomy is a simplified teaching model — not scan data or photographs. Vascular, organ and thermal layers are inferred from living relatives (birds and crocodilians).</li>
+    <li>The bone-histology image is a procedurally generated schematic, not a real thin section.</li>
+    <li>The population figures come from an adjustable model, not a measured count.</li>
+    <li>Citations and institution details should be verified before outreach.</li>
+  </ul></div>
+    <div class="card"><h3>Key literature (verify before citing)</h3><ul class="muted small">
+    <li>Marsh, O.C. (1889). Notice of gigantic horned Dinosauria from the Cretaceous.</li>
+    <li>Horner, J.R. &amp; Goodwin, M.B. (2006). Major cranial changes during <i>Triceratops</i> ontogeny. <i>Proc. R. Soc. B</i>.</li>
+    <li>Farke, A.A., Wolff, E.D.S. &amp; Tanke, D.H. (2009). Evidence of combat in <i>Triceratops</i>. <i>PLoS ONE</i>.</li>
+    <li>Scannella, J.B. &amp; Horner, J.R. (2010). <i>Torosaurus</i> Marsh, 1891, is <i>Triceratops</i> Marsh, 1889. <i>J. Vert. Paleo.</i></li>
+    <li>Longrich, N.R. &amp; Field, D.J. (2012). <i>Torosaurus</i> is not <i>Triceratops</i>. <i>PLoS ONE</i>.</li>
+    <li>Horner, J.R., Goodwin, M.B. &amp; Myhrvold, N. (2011). Dinosaur census reveals abundant <i>Tyrannosaurus</i>… <i>PLoS ONE</i>.</li>
+    <li>Ekhtiari, S. et al. (2020). First case of osteosarcoma in a dinosaur. <i>Lancet Oncology</i>.</li>
+    <li>Marshall, C.R. et al. (2021). Absolute abundance and preservation rate of <i>Tyrannosaurus rex</i>. <i>Science</i>.</li>
+    <li>For bone histology of ceratopsians, search palaeohistology papers on ceratopsian growth (e.g. Horner &amp; Lee; Erickson) via the Biodiversity Heritage Library or Google Scholar.</li>
+  </ul></div>
+  </div>
+</div></section>
+
+<section class="win" id="credits" data-label="Credits"><div class="inner">
+  <div class="kicker">Credits</div>
+  <h2>Prototype label &amp; credentials</h2>
+  <div class="label">
+    <div class="seal">PROTO<br>TYPE<br>v0.4</div>
+    <div>
+      <div style="font-size:1.3rem;font-weight:700;letter-spacing:1px">Asia Khan</div>
+      <div class="muted">Behavioural UX Researcher &amp; 3D Spatial Architect · Design Anthropologist</div>
+      <div class="muted">Hon. BA, McMaster University</div>
+      <div style="margin-top:8px;font-size:.9rem">
+        <a href="https://github.com/khan34535-sudo">Portfolio (GitHub)</a> ·
+        <a href="https://www.linkedin.com/in/asia-khan-70969812a">LinkedIn</a> ·
+        <a href="mailto:asiaaamirkhan@outlook.com">asiaaamirkhan@outlook.com</a>
+      </div>
+      <div class="ev mono" style="margin-top:8px">WINDOWED BUILD · ILLUSTRATIVE MODELS · 5 NOV 2026</div>
+    </div>
+  </div>
+</div></section>
+
+</main>
+</div>
+
+<script>
+(function(){
+'use strict';
+var RESIZERS=window.__RES=[];
+var $=function(s){return document.querySelector(s)};
+var $$=function(s){return Array.prototype.slice.call(document.querySelectorAll(s))};
+var TAU=Math.PI*2;
+function clamp(v,a,b){return Math.max(a,Math.min(b,v))}
+
+/* ---------- global state ---------- */
+var state={age:16}, listeners=[];
+function onAge(fn){listeners.push(fn)}
+function setTxt(id,t){var e=document.getElementById(id);if(e&&e.textContent!==t)e.textContent=t}
+function tOf(a){return clamp(a/16,0,1)}
+function massOf(a){return Math.max(0.01,9.3/(1+Math.exp(-0.5*(a-8)))-0.17)}
+function lenOf(a){return 8.5*Math.pow(massOf(a)/9,1/3)}
+function stageOf(a){return a<4?'Juvenile':(a<12?'Subadult':'Adult')}
+
+/* ---------- main SVG ---------- */
+var filter='all';
+function applyLayers(){
+  $$('#side .layer').forEach(function(g){
+    var key=g.getAttribute('data-layer');
+    var cb=document.querySelector('input[data-layer="'+key+'"]');
+    g.style.display=(cb&&cb.checked)?'':'none';
+    var ev=g.getAttribute('data-evidence');
+    g.style.opacity=(filter==='all'||filter===ev)?1:0.12;
+    g.style.transition='opacity .25s';
+  });
+}
+$$('input[data-layer]').forEach(function(cb){cb.addEventListener('change',applyLayers)});
+$$('#filter button').forEach(function(b){
+  b.addEventListener('click',function(){
+    $$('#filter button').forEach(function(x){x.classList.remove('on')});
+    b.classList.add('on'); filter=b.getAttribute('data-f'); applyLayers();
+  });
+});
+var animal=$('#animal'), brow=$('#brow');
+function updateSide(a){
+  var t=tOf(a), s=0.3+0.7*t, h=0.35+0.65*t, r=30*(1-t);
+  animal.setAttribute('transform','translate(450 380) scale('+s+') translate(-450 -380)');
+  brow.setAttribute('transform','translate(216 189) rotate('+r+') scale('+h+') translate(-216 -189)');
+  $$('.ageTxt').forEach(function(e){e.textContent=a}); $$('.stageTxt').forEach(function(e){e.textContent=stageOf(a)});
+  setTxt('bX',lenOf(a).toFixed(1)+' m'); setTxt('bY',(massOf(a)<1?Math.round(massOf(a)*1000)+' kg':massOf(a).toFixed(1)+' t')); setTxt('bT',a+' yr');
+  $('#rLen').textContent=lenOf(a).toFixed(1)+' m';
+  var m=massOf(a); $('#rMass').textContent=(m<1?Math.round(m*1000)+' kg':m.toFixed(1)+' t');
+  $('#rHorn').textContent=Math.round(h*100)+'%';
+}
+onAge(updateSide);
+function setAge(a){state.age=a; $$('.ageSl').forEach(function(x){if(+x.value!==a)x.value=a}); listeners.forEach(function(f){f(a)})}
+$$('.ageSl').forEach(function(sl){sl.addEventListener('input',function(){setAge(+this.value)})});
+
+/* hotspots */
+var HS=[
+ ['Frill margin — healed bite','Healed tooth-mark traces consistent with a large tyrannosaur. Bone remodelling around the wound shows the animal lived on.','DIRECT','t-d'],
+ ['Brow horn — trauma','Fractured and healed horn bone. Horns took knocks from rivals and predators.','DIRECT','t-d'],
+ ['Frill lesions — combat','Lesions on the squamosal and frill edge consistent with horn-locking between individuals (Farke et al. 2009).','PROBABLE','t-i'],
+ ['Rib cage — infection-type bone','Pitted or swollen bone surfaces of this kind are reported in ceratopsian material; each case needs careful diagnosis.','CASE-DEPENDENT','t-i'],
+ ['Dental battery — wear & renewal','Wear facets are normal: teeth sheared against each other and were replaced from below throughout life.','DIRECT','t-d'],
+ ['Limb bone — histology sampling site','Thin sections of limb bones are where palaeohistologists count growth lines. See the Bone histology lab below.','DIRECT','t-d']
+];
+$('#side').addEventListener('click',function(e){
+  var g=e.target.closest?e.target.closest('.hs'):null; if(!g)return;
+  var d=HS[+g.getAttribute('data-i')];
+  $('#hsInfo').innerHTML='<b>'+d[0]+'</b> <span class="tag '+d[3]+'">'+d[2]+'</span><br>'+d[1];
+});
+
+/* ---------- 3D engine ---------- */
+function norm(v){var l=Math.hypot(v[0],v[1],v[2])||1;return [v[0]/l,v[1]/l,v[2]/l]}
+function cross(a,b){return [a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]]}
+function poly(L,pts,c,g,closed){
+  for(var i=0;i<pts.length-1;i++)L.push({a:pts[i],b:pts[i+1],c:c,g:g});
+  if(closed)L.push({a:pts[pts.length-1],b:pts[0],c:c,g:g});
+}
+function cone(L,base,tip,r,c,g,rings){
+  var d=[tip[0]-base[0],tip[1]-base[1],tip[2]-base[2]], len=Math.hypot(d[0],d[1],d[2]); d=norm(d);
+  var ref=Math.abs(d[1])<0.9?[0,1,0]:[1,0,0], u=norm(cross(d,ref)), w=cross(d,u), first=null;
+  for(var k=0;k<=rings;k++){
+    var f=k/(rings+1), rr=r*(1-f), ring=[];
+    var ctr=[base[0]+d[0]*len*f,base[1]+d[1]*len*f,base[2]+d[2]*len*f];
+    for(var j=0;j<10;j++){
+      var a=j/10*TAU, ca=Math.cos(a)*rr, sa=Math.sin(a)*rr;
+      ring.push([ctr[0]+ca*u[0]+sa*w[0],ctr[1]+ca*u[1]+sa*w[1],ctr[2]+ca*u[2]+sa*w[2]]);
+    }
+    poly(L,ring,c,g,true); if(k===0)first=ring;
+  }
+  for(var j2=0;j2<10;j2+=2)L.push({a:first[j2],b:tip,c:c,g:g});
+}
+var COL={cy:[53,243,255],cy2:[40,150,255],mg:[255,77,225],am:[255,211,107],vi:[170,130,255],lm:[125,255,176],fr:[120,255,210],fr2:[90,170,255],wh:[255,255,255]};
+
+function bandCol(c,y,b){
+  if(b==='thermal'){y=clamp(y,0,1);return [255,Math.round(70+170*y),Math.round(40+30*(1-y))]}
+  if(b==='xray'){var l=Math.round(150+0.4*(0.3*c[0]+0.59*c[1]+0.11*c[2]));return [l,Math.min(255,l+10),255]}
+  if(b==='uv'){return [Math.round(110+0.3*c[0]),Math.round(60+0.15*c[1]),255]}
+  return c;
+}
+function Viewer(canvas,opts){
+  var ctx=canvas.getContext('2d'), dpr=Math.min(2,window.devicePixelRatio||1);
+  var v={ay:opts.ay||0.7,ax:opts.ax||0.18,auto:true,scan:true,mode:'wire',model:{lines:[]},groups:{},dragging:false,t:0,cut:0,hl:null,band:'visible',onFrame:null};
+  function size(){var w=canvas.clientWidth,h=canvas.clientHeight;if(!w||!h)return;canvas.width=Math.round(w*dpr);canvas.height=Math.round(h*dpr)}
+  size(); RESIZERS.push(size); window.addEventListener('resize',size);
+  var px=0,py=0;
+  canvas.addEventListener('pointerdown',function(e){v.dragging=true;px=e.clientX;py=e.clientY;try{canvas.setPointerCapture(e.pointerId)}catch(x){}});
+  canvas.addEventListener('pointerup',function(){v.dragging=false});
+  canvas.addEventListener('pointercancel',function(){v.dragging=false});
+  canvas.addEventListener('pointermove',function(e){
+    if(!v.dragging)return;
+    v.ay+=(e.clientX-px)*0.011; v.ax=clamp(v.ax+(e.clientY-py)*0.008,-1.3,1.3); px=e.clientX;py=e.clientY;
+  });
+  function rot(p){
+    var x=p[0]-opts.center[0],y=p[1]-opts.center[1],z=p[2]-opts.center[2];
+    var c=Math.cos(v.ay),s=Math.sin(v.ay), x1=x*c+z*s, z1=-x*s+z*c;
+    c=Math.cos(v.ax); s=Math.sin(v.ax);
+    return [x1,y*c-z1*s,y*s+z1*c];
+  }
+  function frame(){
+    requestAnimationFrame(frame);
+    if(!canvas.offsetParent||!canvas.width)return;
+    var r=canvas.getBoundingClientRect();
+    if(r.bottom<0||r.top>window.innerHeight)return;
+    var W=canvas.width,H=canvas.height;
+    v.t+=0.016; if(v.auto&&!v.dragging)v.ay+=0.006; if(v.onFrame)v.onFrame(v);
+    ctx.setTransform(1,0,0,1,0,0); ctx.clearRect(0,0,W,H);
+    ctx.globalCompositeOperation='lighter'; ctx.lineCap='round';
+    var f=3.4, sc=Math.min(W,H)*opts.scale;
+    function proj(p){var q=rot(p),k=f/(f+q[2]);return [W/2+q[0]*sc*k,H/2-q[1]*sc*k,q[2]]}
+    // floor
+    var fy=opts.floorY, fr=opts.floorR;
+    for(var ri=1;ri<=3;ri++){
+      ctx.beginPath();
+      for(var j=0;j<=48;j++){var a=j/48*TAU,p=proj([Math.cos(a)*fr*ri/3,fy,Math.sin(a)*fr*ri/3]);if(j)ctx.lineTo(p[0],p[1]);else ctx.moveTo(p[0],p[1])}
+      ctx.strokeStyle='rgba(53,243,255,'+(0.10+0.05*ri)+')';ctx.lineWidth=1*dpr;ctx.stroke();
+    }
+    for(var sp=0;sp<12;sp++){
+      var a2=sp/12*TAU,p1=proj([0,fy,0]),p2=proj([Math.cos(a2)*fr,fy,Math.sin(a2)*fr]);
+      ctx.beginPath();ctx.moveTo(p1[0],p1[1]);ctx.lineTo(p2[0],p2[1]);ctx.strokeStyle='rgba(53,243,255,.08)';ctx.stroke();
+    }
+    // scan plane
+    var scanY=opts.scanMin+(opts.scanMax-opts.scanMin)*(0.5+0.5*Math.sin(v.t*1.1));
+    if(v.scan){
+      ctx.beginPath();
+      for(var q=0;q<=48;q++){var a3=q/48*TAU,pp=proj([opts.center[0]+Math.cos(a3)*opts.scanR,scanY,opts.center[2]+Math.sin(a3)*opts.scanR]);if(q)ctx.lineTo(pp[0],pp[1]);else ctx.moveTo(pp[0],pp[1])}
+      ctx.strokeStyle='rgba(255,255,255,.45)';ctx.lineWidth=1.4*dpr;ctx.stroke();
+    }
+    // model
+    var L=v.model.lines, wire=(v.mode==='wire'||v.mode==='both'), pts=(v.mode==='pts'||v.mode==='both');
+    for(var i=0;i<L.length;i++){
+      var s=L[i]; if(v.groups[s.g]===false)continue;
+      if(v.cut>0){var thr=0.42-0.5*v.cut; if(s.a[2]>thr&&s.b[2]>thr)continue}
+      var pa=proj(s.a), pb=proj(s.b), z=(pa[2]+pb[2])/2;
+      var al=clamp(0.62-z*0.34,0.1,1), col=bandCol(COL[s.c]||COL.cy,(s.a[1]-opts.scanMin)/(opts.scanMax-opts.scanMin),v.band), lw=1.2; if(v.hl&&!v.hl(s))al*=0.28;
+      if(v.scan&&Math.abs(s.a[1]-scanY)<opts.scanBand){col=COL.wh;al=1;lw=2}
+      var rgb=col[0]+','+col[1]+','+col[2];
+      if(wire){ctx.beginPath();ctx.moveTo(pa[0],pa[1]);ctx.lineTo(pb[0],pb[1]);ctx.strokeStyle='rgba('+rgb+','+al.toFixed(2)+')';ctx.lineWidth=lw*dpr;ctx.stroke()}
+      if(pts){ctx.beginPath();ctx.arc(pa[0],pa[1],(lw+0.6)*dpr,0,TAU);ctx.fillStyle='rgba('+rgb+','+al.toFixed(2)+')';ctx.fill()}
+    }
+  }
+  requestAnimationFrame(frame);
+  return v;
+}
+
+/* ---------- skull model ---------- */
+function shellAt(x){
+  var s=clamp((x-0.1)/0.85,0,1);
+  return {ry:0.36*(1-0.62*s), rz:0.30*(1-0.7*s), cy:-0.05*s};
+}
+function buildSkull(t){
+  var L=[], hs=0.4+0.6*t, fs=0.62+0.38*t, N=11, M=18, rings=[], i, j, sd;
+  for(i=0;i<=N;i++){
+    var x=-0.5+i/N*1.45, sh=shellAt(x), ring=[];
+    for(j=0;j<M;j++){var a=j/M*TAU; ring.push([x,sh.cy+sh.ry*Math.sin(a),sh.rz*Math.cos(a)])}
+    rings.push(ring); poly(L,ring,'cy','shell',true);
+  }
+  for(j=0;j<M;j+=2)for(i=0;i<N;i++)L.push({a:rings[i][j],b:rings[i+1][j],c:'cy2',g:'shell'});
+  var tip=[1.1,-0.16,0];
+  for(j=0;j<M;j+=3)L.push({a:rings[N][j],b:tip,c:'am',g:'shell'});
+  // frill
+  var cx=-0.42, cy=0.12, tilt=0.6, a0=-0.25*Math.PI, a1=1.25*Math.PI;
+  function fp(r,th){var yl=r*0.82*fs*Math.sin(th), zl=r*0.95*fs*Math.cos(th);return [cx-yl*Math.sin(tilt),cy+yl*Math.cos(tilt),zl]}
+  [0.25,0.5,0.75,1].forEach(function(r){
+    var pts=[];
+    for(var s=0;s<=40;s++){var th=a0+(a1-a0)*s/40, rim=(r===1)?1+0.05*Math.sin(th*26):1; pts.push(fp(r*rim,th))}
+    poly(L,pts,'fr','frill',false);
+  });
+  for(var s2=0;s2<=24;s2++){var th2=a0+(a1-a0)*s2/24; L.push({a:fp(0.12,th2),b:fp(1,th2),c:'fr2',g:'frill'})}
+  for(var s3=0;s3<=34;s3++){var th3=a0+(a1-a0)*s3/34; L.push({a:fp(1,th3),b:fp(1.1,th3),c:'fr',g:'frill'})}
+  for(var gI=0;gI<9;gI++){
+    var base=a0+(a1-a0)*(gI+0.5)/9, pts2=[];
+    for(var k=0;k<=10;k++){var rr=0.15+0.8*k/10; pts2.push(fp(rr,base+0.07*Math.sin(rr*9+gI)))}
+    poly(L,pts2,'lm','grooves',false);
+  }
+  // horns
+  [-1,1].forEach(function(side){
+    var dir=norm([-0.35+1.15*t,0.85-0.3*t,side*0.22]), b=[0.1,0.33,side*0.17], len=0.95*hs;
+    cone(L,b,[b[0]+dir[0]*len,b[1]+dir[1]*len,b[2]+dir[2]*len],0.075,'mg','horns',3);
+  });
+  cone(L,[0.84,0.08,0],[0.94,0.08+0.38*hs,0],0.06,'mg','horns',2);
+  // teeth
+  [-1,1].forEach(function(side){
+    for(var q=0;q<11;q++){
+      var x=0.12+0.062*q, sh=shellAt(x), z=side*sh.rz*0.82, y=sh.cy-sh.ry*0.78;
+      L.push({a:[x,y,z],b:[x,y+0.07,z],c:'am',g:'teeth'});
+      L.push({a:[x,y+0.1,z],b:[x,y+0.17,z],c:'am',g:'teeth'});
+    }
+  });
+  // brain
+  [-0.1,0,0.1].forEach(function(dy){
+    var pts=[], rr=Math.sqrt(Math.max(0,1-(dy/0.14)*(dy/0.14)));
+    for(var m=0;m<16;m++){var a=m/16*TAU; pts.push([-0.25+0.2*rr*Math.cos(a),0.13+dy,0.12*rr*Math.sin(a)])}
+    poly(L,pts,'vi','brain',true);
+  });
+  for(var m2=0;m2<16;m2+=4){
+    var a=m2/16*TAU; L.push({a:[-0.25+0.2*0.6*Math.cos(a),0.13-0.1,0.12*0.6*Math.sin(a)],b:[-0.25+0.2*0.6*Math.cos(a),0.13+0.1,0.12*0.6*Math.sin(a)],c:'vi',g:'brain'});
+  }
+  return {lines:L};
+}
+
+/* ---------- tooth model ---------- */
+function toothSegs(L,ox,oy,oz,s,wear,ry,g){
+  function T(p){
+    var c=Math.cos(ry),sn=Math.sin(ry), x=p[0]*s,y=p[1]*s,z=p[2]*s;
+    return [ox+x*c+z*sn,oy+y,oz-x*sn+z*c];
+  }
+  var H=1.0*(1-0.45*wear), K=6, M=14, rings=[], k, j;
+  for(k=0;k<=K;k++){
+    var f=k/K, rx=0.26*(1-0.18*f), rz=0.11*(1-0.55*f), y0=H*f, ring=[];
+    for(j=0;j<M;j++){
+      var a=j/M*TAU, px=rx*Math.cos(a), pz=rz*Math.sin(a);
+      ring.push(T([px,y0+wear*0.35*(px/0.26)*f,pz]));
+    }
+    rings.push(ring); poly(L,ring,'am',g,true);
+  }
+  for(j=0;j<M;j+=2)for(k=0;k<K;k++)L.push({a:rings[k][j],b:rings[k+1][j],c:'cy',g:g});
+  [-1,1].forEach(function(side){
+    var rr=[],last=null,kk;
+    for(kk=0;kk<=4;kk++){
+      var f2=kk/4, cxr=side*0.13*(1-0.2*f2), r=0.085*(1-0.7*f2), ring=[];
+      for(var m=0;m<10;m++){var a=m/10*TAU; ring.push(T([cxr+r*Math.cos(a),-0.9*f2,0.07*(r/0.085)*Math.sin(a)]))}
+      poly(L,ring,'vi',g,true); rr.push(ring);
+    }
+    for(var m2=0;m2<10;m2+=2)for(kk=0;kk<4;kk++)L.push({a:rr[kk][m2],b:rr[kk+1][m2],c:'vi',g:g});
+  });
+  // carina groove
+  L.push({a:T([0,0.02,0.11]),b:T([0,H*0.95,0.05]),c:'lm',g:g});
+}
+function buildTooth(mode,wear){
+  var L=[];
+  if(mode==='single'){
+    toothSegs(L,0,0,0,1,wear,0,'tooth');
+  }else{
+    var cols=7, R=1.7, i, layer;
+    for(i=0;i<cols;i++){
+      var phi=(i-(cols-1)/2)*0.30, ox=R*Math.sin(phi), oz=R*(Math.cos(phi)-1), ry=phi;
+      for(layer=0;layer<4;layer++){
+        var w=layer===0?wear:(layer===1?wear*0.25:0);
+        toothSegs(L,ox,-layer*0.3+0.3,oz,0.42,w,ry,'tooth');
+      }
+    }
+  }
+  return {lines:L};
+}
+
+/* ---------- viewers ---------- */
+var skull=Viewer($('#cvSkull'),{center:[0.3,0.12,0],scale:0.3,floorY:-0.75,floorR:1.5,scanMin:-0.5,scanMax:0.8,scanR:0.95,scanBand:0.05,ay:0.8,ax:0.2});
+skull.model=buildSkull(1);
+var tooth=Viewer($('#cvTooth'),{center:[0,-0.1,0],scale:0.36,floorY:-1.0,floorR:1.3,scanMin:-1.0,scanMax:1.0,scanR:0.8,scanBand:0.05,ay:0.5,ax:0.15});
+var toothMode='single', wear=0.3;
+function rebuildTooth(){
+  tooth.model=buildTooth(toothMode,wear);
+  $('#toothHud').innerHTML='TOOTH · '+toothMode.toUpperCase()+'<br>WEAR '+Math.round(wear*100)+'%';
+}
+rebuildTooth();
+onAge(function(a){
+  skull.model=buildSkull(tOf(a));
+  $('#skullHud').innerHTML='SKULL · '+skull.mode.toUpperCase()+'<br>AGE '+a+' YRS';
+});
+$$('#skullMode button').forEach(function(b){b.addEventListener('click',function(){
+  $$('#skullMode button').forEach(function(x){x.classList.remove('on')});b.classList.add('on');
+  skull.mode=b.getAttribute('data-m');
+  $('#skullHud').innerHTML='SKULL · '+skull.mode.toUpperCase()+'<br>AGE '+state.age+' YRS';
+})});
+$$('input[data-view="skull"]').forEach(function(cb){cb.addEventListener('change',function(){skull.groups[cb.getAttribute('data-group')]=cb.checked})});
+$('#skullAuto').addEventListener('change',function(){skull.auto=this.checked});
+$('#skullScan').addEventListener('change',function(){skull.scan=this.checked});
+$$('#toothMode button').forEach(function(b){b.addEventListener('click',function(){
+  $$('#toothMode button').forEach(function(x){x.classList.remove('on')});b.classList.add('on');
+  toothMode=b.getAttribute('data-m'); rebuildTooth();
+})});
+$('#wear').addEventListener('input',function(){wear=this.value/100;$('#wearTxt').textContent=this.value;rebuildTooth()});
+$('#toothAuto').addEventListener('change',function(){tooth.auto=this.checked});
+$('#toothScan').addEventListener('change',function(){tooth.scan=this.checked});
+
+/* ---------- histology ---------- */
+function mulberry(a){return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+var hMode='trans';
+function growthFrac(a){return clamp((1-Math.exp(-0.17*a))/(1-Math.exp(-0.17*25)),0,1)}
+function drawHisto(){
+  var cv=$('#histoCv'), c=cv.getContext('2d'), W=cv.width, cx=W/2, cy=W/2, Rfull=330, Rin=95;
+  var a=state.age, Rcur=Rin+Math.max(18,(Rfull-Rin)*growthFrac(a));
+  var pol=(hMode==='pol'), rnd=mulberry(20261103), i, j, ang, rr;
+  c.setTransform(1,0,0,1,0,0); c.globalCompositeOperation='source-over';
+  c.fillStyle='#030814'; c.fillRect(0,0,W,W);
+  var rem=clamp((a-5)/12,0,1), marks={};
+  // medullary cavity with trabeculae
+  c.fillStyle=pol?'#02050c':'#0a1630'; c.beginPath(); c.arc(cx,cy,Rin,0,TAU); c.fill();
+  var tr=mulberry(7);
+  c.strokeStyle=pol?'rgba(170,130,255,.35)':'rgba(255,211,107,.35)'; c.lineWidth=1.4;
+  for(i=0;i<46;i++){
+    var a0=tr()*TAU, r0=Rin-2, r1=Rin*(0.25+tr()*0.55), a1=a0+(tr()-0.5)*0.9;
+    c.beginPath(); c.moveTo(cx+Math.cos(a0)*r0,cy+Math.sin(a0)*r0);
+    c.quadraticCurveTo(cx+Math.cos((a0+a1)/2)*(Rin*0.7),cy+Math.sin((a0+a1)/2)*(Rin*0.7),cx+Math.cos(a1)*r1,cy+Math.sin(a1)*r1); c.stroke();
+  }
+  // cortex
+  c.save(); c.beginPath(); c.arc(cx,cy,Rcur,0,TAU); c.arc(cx,cy,Rin,0,TAU,true); c.clip();
+  if(pol){c.fillStyle='#050a18';c.fillRect(0,0,W,W)}
+  else{
+    var g=c.createRadialGradient(cx,cy,Rin,cx,cy,Rcur);
+    g.addColorStop(0,'#c98a43'); g.addColorStop(0.55,'#e8b866'); g.addColorStop(1,'#ffd9a0');
+    c.fillStyle=g; c.fillRect(0,0,W,W);
+  }
+  // lamellar texture
+  c.lineWidth=1;
+  for(i=0;i<1500;i++){
+    rr=Rin+rnd()*(Rfull-Rin); ang=rnd()*TAU; var len=0.04+rnd()*0.09;
+    c.strokeStyle=pol?'rgba(120,160,255,.09)':'rgba(110,60,15,.12)';
+    c.beginPath(); c.arc(cx,cy,rr,ang,ang+len); c.stroke();
+  }
+  // secondary osteons (remodelling)
+  var nOst=44, firstOst=null;
+  for(i=0;i<nOst;i++){
+    rr=Rin+14+rnd()*(Rfull-Rin)*0.55; ang=rnd()*TAU; var ro=11+rnd()*9;
+    if(i/nOst>=rem)continue;
+    if(rr>Rcur-ro)continue;
+    var ox=cx+Math.cos(ang)*rr, oy=cy+Math.sin(ang)*rr;
+    if(!firstOst)firstOst=[ox,oy];
+    c.beginPath(); c.arc(ox,oy,ro+2,0,TAU);
+    c.fillStyle=pol?'rgba(0,0,0,.6)':'rgba(255,230,180,.35)'; c.fill();
+    c.strokeStyle=pol?'rgba(255,255,255,.7)':'rgba(70,30,5,.85)'; c.lineWidth=1.6; c.stroke();
+    for(j=1;j<=5;j++){
+      var lr=ro*(1-j/6.5);
+      c.beginPath(); c.arc(ox,oy,lr,0,TAU);
+      if(pol){c.strokeStyle='hsla('+[190,300,50][j%3]+',90%,60%,.55)';c.lineWidth=2.2}
+      else{c.strokeStyle='rgba(110,60,15,.35)';c.lineWidth=1.1}
+      c.stroke();
+    }
+    if(pol){
+      c.globalCompositeOperation='lighter'; c.fillStyle='rgba(255,255,255,.16)';
+      for(j=0;j<4;j+=2){c.beginPath();c.moveTo(ox,oy);c.arc(ox,oy,ro,j*Math.PI/2,(j+1)*Math.PI/2);c.closePath();c.fill()}
+      c.globalCompositeOperation='source-over';
+    }
+    c.beginPath(); c.arc(ox,oy,2.6,0,TAU); c.fillStyle=pol?'#000':'#2a1203'; c.fill();
+  }
+  // primary vascular canals / osteons
+  var firstCan=null;
+  for(i=0;i<280;i++){
+    var u=Math.pow(rnd(),0.7); rr=Rin+(Rfull-Rin)*(0.3+0.68*u); ang=rnd()*TAU; var rc=3+rnd()*2.6;
+    if(rr>Rcur-rc-2)continue;
+    var x=cx+Math.cos(ang)*rr, y=cy+Math.sin(ang)*rr;
+    if(!firstCan&&rr>Rin+(Rcur-Rin)*0.6)firstCan=[x,y];
+    c.beginPath(); c.arc(x,y,rc+3,0,TAU);
+    c.strokeStyle=pol?'hsla('+(190+rnd()*120)+',90%,60%,.5)':'rgba(90,40,8,.45)'; c.lineWidth=1.2; c.stroke();
+    c.beginPath(); c.arc(x,y,rc,0,TAU); c.fillStyle=pol?'#000':'#3a1a06'; c.fill();
+  }
+  // osteocyte lacunae
+  var firstLac=null;
+  for(i=0;i<1100;i++){
+    rr=Rin+rnd()*(Rfull-Rin); ang=rnd()*TAU;
+    if(rr>Rcur-3)continue;
+    var lx=cx+Math.cos(ang)*rr, ly=cy+Math.sin(ang)*rr;
+    if(!firstLac&&rr>Rin+(Rcur-Rin)*0.4)firstLac=[lx,ly];
+    c.save(); c.translate(lx,ly); c.rotate(ang+Math.PI/2); c.beginPath(); c.ellipse(0,0,2.8,1.3,0,0,TAU);
+    c.fillStyle=pol?'rgba(0,0,0,.9)':'rgba(50,20,5,.6)'; c.fill(); c.restore();
+  }
+  // LAGs
+  var nLag=Math.min(25,Math.floor(a)), lost=Math.floor(nLag*rem*0.5), visible=0, lagSample=null;
+  for(i=1;i<=nLag;i++){
+    if(i<=lost)continue;
+    var rl=Rin+(Rfull-Rin)*growthFrac(i);
+    if(rl>=Rcur-1)continue;
+    visible++;
+    c.beginPath();
+    for(j=0;j<=120;j++){
+      var aa=j/120*TAU, wob=1.6*Math.sin(aa*5+i)+1.1*Math.sin(aa*11+i*2);
+      var px=cx+Math.cos(aa)*(rl+wob), py=cy+Math.sin(aa)*(rl+wob);
+      if(j)c.lineTo(px,py);else c.moveTo(px,py);
+    }
+    c.strokeStyle=pol?'rgba(255,255,255,.6)':'rgba(55,18,4,.85)'; c.lineWidth=1.5; c.stroke();
+    if(!lagSample&&i>lost+1)lagSample=rl;
+  }
+  var efs=a>=17;
+  if(efs){
+    for(i=0;i<5;i++){
+      var re=Rcur-3-i*3.2; c.beginPath(); c.arc(cx,cy,re,0,TAU);
+      c.strokeStyle=pol?'rgba(255,255,255,.5)':'rgba(55,18,4,.8)'; c.lineWidth=1.1; c.stroke();
+    }
+  }
+  c.restore();
+  // outline glow
+  c.strokeStyle='rgba(53,243,255,.8)'; c.lineWidth=2;
+  c.beginPath(); c.arc(cx,cy,Rcur,0,TAU); c.stroke();
+  c.strokeStyle='rgba(53,243,255,.5)';
+  c.beginPath(); c.arc(cx,cy,Rin,0,TAU); c.stroke();
+  // annotations
+  if($('#histoAnn').checked){
+    var M=[];
+    M.push([1,cx,cy]);
+    if(firstOst)M.push([2,firstOst[0],firstOst[1]]);
+    if(firstCan)M.push([3,firstCan[0],firstCan[1]]);
+    if(lagSample){var la=-0.7;M.push([4,cx+Math.cos(la)*lagSample,cy+Math.sin(la)*lagSample])}
+    if(firstLac)M.push([5,firstLac[0],firstLac[1]]);
+    if(efs)M.push([6,cx+Math.cos(0.5)*(Rcur-8),cy+Math.sin(0.5)*(Rcur-8)]);
+    M.forEach(function(m){
+      c.beginPath(); c.arc(m[1],m[2],11,0,TAU); c.fillStyle='rgba(255,77,225,.9)'; c.fill();
+      c.strokeStyle='#fff'; c.lineWidth=1.5; c.stroke();
+      c.fillStyle='#fff'; c.font='bold 13px Consolas,monospace'; c.textAlign='center'; c.textBaseline='middle'; c.fillText(m[0],m[1],m[2]+1);
+    });
+  }
+  $('#hLag').textContent=visible; $('#hLost').textContent=lost; $('#hEfs').textContent=efs?'YES':'NO';
+  setTxt('hX',Math.round((Rcur-Rin)/(Rfull-Rin)*100)+'%'); setTxt('hY',String(visible)); setTxt('hZ',Math.round(rem*100)+'%'); setTxt('hT',a+' yr');
+}
+onAge(drawHisto);
+$$('#histoMode button').forEach(function(b){b.addEventListener('click',function(){
+  $$('#histoMode button').forEach(function(x){x.classList.remove('on')});b.classList.add('on');hMode=b.getAttribute('data-m');drawHisto();
+})});
+$('#histoAnn').addEventListener('change',drawHisto);
+
+/* ---------- growth chart ---------- */
+function drawGrowth(){
+  var cv=$('#growthCv'), c=cv.getContext('2d'), W=cv.width, H=cv.height, L=56, R=20, T=20, B=44, i;
+  c.clearRect(0,0,W,H); c.fillStyle='rgba(3,8,20,.6)'; c.fillRect(0,0,W,H);
+  function X(a){return L+(W-L-R)*a/25}
+  function Y(m){return H-B-(H-B-T)*m/10}
+  c.strokeStyle='rgba(53,243,255,.15)'; c.lineWidth=1; c.fillStyle='#8fb4cc'; c.font='12px Consolas,monospace';
+  for(i=0;i<=10;i+=2){c.beginPath();c.moveTo(L,Y(i));c.lineTo(W-R,Y(i));c.stroke();c.textAlign='right';c.fillText(i+' t',L-6,Y(i)+4)}
+  for(i=0;i<=25;i+=5){c.textAlign='center';c.fillText(i+' y',X(i),H-B+18)}
+  c.fillText('age (years)',W/2,H-6);
+  // band
+  c.beginPath();
+  for(i=0;i<=50;i++){var a=i/2,u=1+0.1+0.15*(a/25);c.lineTo(X(a),Y(Math.min(10,massOf(a)*u)))}
+  for(i=50;i>=0;i--){var a2=i/2,d=1-0.1-0.15*(a2/25);c.lineTo(X(a2),Y(massOf(a2)*d))}
+  c.closePath(); c.fillStyle='rgba(139,92,255,.22)'; c.fill();
+  c.beginPath();
+  for(i=0;i<=50;i++){var a3=i/2;if(i)c.lineTo(X(a3),Y(massOf(a3)));else c.moveTo(X(a3),Y(massOf(a3)))}
+  c.strokeStyle='#35f3ff'; c.lineWidth=2.5; c.stroke();
+  var ax=X(state.age), ay=Y(massOf(state.age));
+  c.setLineDash([4,4]); c.strokeStyle='rgba(255,77,225,.8)'; c.lineWidth=1.2;
+  c.beginPath();c.moveTo(ax,H-B);c.lineTo(ax,ay);c.lineTo(L,ay);c.stroke(); c.setLineDash([]);
+  c.beginPath();c.arc(ax,ay,6,0,TAU);c.fillStyle='#ff4de1';c.fill();c.strokeStyle='#fff';c.lineWidth=1.5;c.stroke();
+}
+onAge(drawGrowth);
+
+/* ---------- population ---------- */
+function fmt(n){
+  if(n>=1e9)return (n/1e9).toFixed(1)+' billion';
+  if(n>=1e6)return (n/1e6).toFixed(1)+' million';
+  return Math.round(n).toLocaleString();
+}
+function calc(){
+  var den=+$('#den').value, area=+$('#area').value*1000, life=+$('#life').value*1e6, gen=+$('#gen').value;
+  $('#oDen').textContent=den; $('#oArea').textContent=$('#area').value; $('#oLife').textContent=$('#life').value; $('#oGen').textContent=gen;
+  var stand=den*area; $('#rStand').textContent='≈ '+fmt(stand); $('#rTotal').textContent='≈ '+fmt(stand*(life/gen));
+}
+['den','area','life','gen'].forEach(function(id){$('#'+id).addEventListener('input',calc)});
+calc();
+
+/* ---------- shared band / chemistry ---------- */
+var BAND_NAMES={visible:'Visible',thermal:'Thermal',xray:'X-ray / CT',uv:'UV'};
+var BAND_FILTER={visible:'none',thermal:'hue-rotate(175deg) saturate(1.5)',xray:'grayscale(1) brightness(1.2) contrast(1.1)',uv:'hue-rotate(85deg) saturate(1.4)'};
+var CHEM_SHORT={hap:'HAp',col:'Collagen',ker:'Keratin',iso:'Isotopes'};
+var HL_SKULL={hap:['shell','frill'],col:['shell','frill','grooves'],ker:['horns'],iso:['teeth']};
+var HL_TOOTH={hap:['cy','vi'],col:['vi'],ker:[],iso:['am','cy','lm']};
+var TISS=['Frill bone','Horn core','Horn sheath','Tooth enamel','Dentine','Limb bone'];
+var CHEM_VAL={hap:[62,60,4,96,70,64],col:[30,32,8,2,20,31],ker:[2,2,92,0,0,2],iso:[40,40,5,90,55,42]};
+state.band='visible'; state.chem='hap';
+function drawBars(){
+  var h='',v=CHEM_VAL[state.chem];
+  for(var i=0;i<TISS.length;i++)h+='<div class="bar"><span>'+TISS[i]+'</span><u><i style="width:'+v[i]+'%"></i></u><b>'+v[i]+'</b></div>';
+  $('#chemBars').innerHTML=h;
+}
+function refreshAxes(){
+  ['aL','bL','tL','hL'].forEach(function(id){setTxt(id,BAND_NAMES[state.band])});
+  ['aC','bC','tC','hC'].forEach(function(id){setTxt(id,CHEM_SHORT[state.chem])});
+  geoAxes();
+}
+function setBand(b){
+  state.band=b; skull.band=b; tooth.band=b;
+  $$('.bandSeg button').forEach(function(x){x.classList.toggle('on',x.getAttribute('data-b')===b)});
+  $('#side').style.filter=BAND_FILTER[b]; $('#histoCv').style.filter=BAND_FILTER[b];
+  refreshAxes();
+}
+function setChem(c){
+  state.chem=c;
+  skull.hl=function(sg){return HL_SKULL[c].indexOf(sg.g)>=0};
+  tooth.hl=function(sg){return HL_TOOTH[c].indexOf(sg.c)>=0};
+  $$('.chemSeg button').forEach(function(x){x.classList.toggle('on',x.getAttribute('data-c')===c)});
+  drawBars(); refreshAxes();
+}
+$$('.bandSeg button').forEach(function(b){b.addEventListener('click',function(){setBand(b.getAttribute('data-b'))})});
+$$('.chemSeg button').forEach(function(b){b.addEventListener('click',function(){setChem(b.getAttribute('data-c'))})});
+skull.onFrame=function(v){setTxt('aX',Math.round(((v.ay*57.2958)%360+360)%360)+'°');setTxt('aY',Math.round(v.ax*57.2958)+'°')};
+tooth.onFrame=function(v){setTxt('tX',Math.round(((v.ay*57.2958)%360+360)%360)+'°');setTxt('tY',Math.round(v.ax*57.2958)+'°')};
+$('#cutSkull').addEventListener('input',function(){skull.cut=this.value/100;setTxt('aZ',this.value+'%');setTxt('cutSkullTxt',this.value)});
+$('#wear').addEventListener('input',function(){setTxt('tZ',this.value+'%')});
+var cutTouched=false;
+$('#cutBody').addEventListener('input',function(){
+  var c=+this.value; $('#side').style.setProperty('--skinA',(1-0.92*c/100).toFixed(2));
+  setTxt('bZ',c+'%'); setTxt('cutBodyTxt',String(c));
+  if(c>15&&!cutTouched){cutTouched=true;['skeleton','physio'].forEach(function(k){var cb=document.querySelector('input[data-layer="'+k+'"]');if(cb)cb.checked=true});applyLayers()}
+});
+onAge(function(a){setTxt('aT',a+' yr');setTxt('tT',a+' yr')});
+setTxt('aZ','0%');setTxt('bZ','0%');setTxt('tZ','30%');
+
+/* ---------- geo globe ---------- */
+var D2R=Math.PI/180;
+var RAW={
+ na:[[-168,66],[-162,70],[-156,71.5],[-141,70],[-128,70],[-115,68],[-95,72],[-82,69],[-86,66],[-94,61],[-93,57],[-85,55],[-80,52],[-79,57],[-77,62],[-70,61],[-65,60],[-61,56],[-56,52],[-60,47],[-66,45],[-70,42],[-74,40],[-76,35],[-81,31],[-80,26],[-83,28],[-85,30],[-89,30],[-94,29],[-97,26],[-97,22],[-95,19],[-91,19],[-90,21],[-87,21],[-88,16],[-84,15],[-83,10],[-79,9],[-80,8],[-86,11],[-92,14],[-97,16],[-105,19.5],[-108,25],[-113,31],[-115,30],[-117,32.5],[-120,34.5],[-124,40],[-124.5,46],[-123,48.5],[-127,51],[-132,55],[-138,59],[-145,60.5],[-152,59],[-158,57],[-165,54.5],[-160,59],[-165,62]],
+ gl:[[-73,78],[-60,82],[-30,83],[-18,76],[-20,70],[-30,68],[-42,60],[-50,64],[-55,70]],
+ sa:[[-77,8],[-72,12],[-62,10.5],[-52,5],[-50,0],[-44,-2.5],[-35,-5],[-39,-14],[-41,-22],[-48,-26],[-53,-34],[-58,-38],[-65,-41],[-66,-47],[-69,-52],[-68,-55],[-73,-52],[-74,-43],[-73,-37],[-71,-30],[-70,-18],[-76,-14],[-81,-5],[-80,0],[-77,4]],
+ eu:[[-9,37],[-9,43],[-2,43.5],[-4,48],[2,51],[8,54],[8,57],[11,56],[12,54.5],[20,55],[24,59],[30,60],[22,65],[25,66],[17,69],[25,71],[40,68],[60,69],[70,73],[100,77],[115,74],[140,72],[170,70],[180,68.5],[180,65],[163,60],[155,58],[143,59],[135,54],[140,48],[130,42],[127,37],[122,40],[121,32],[119,25],[108,21],[106,10],[100,13],[99,8],[103,1.5],[98,8],[98,16],[92,22],[88,22],[80,15],[77,8],[73,17],[72,21],[67,24],[62,25],[57,26],[50,30],[48,30],[50,26],[56,26],[59.8,22.5],[55,17],[44,12.5],[39,21],[35,28],[34,31],[36,36],[27,37],[26,40],[29,41],[23,40],[22,37],[19,40],[16,38],[12,42],[8,44],[3,42],[0,38],[-5,36.2]],
+ af:[[-6,35.8],[10,37],[11,33],[20,32],[32,31],[34,28],[39,21],[43,12.5],[51,11.8],[40,-4],[40,-15],[35,-24],[32,-28],[26,-34],[18,-34],[15,-27],[12,-17],[13,-8],[9,-1],[9,4],[5,5.5],[-8,4.5],[-12,8],[-17,14],[-17,21],[-10,30]],
+ au:[[114,-22],[122,-18],[130,-12],[137,-12],[142,-11],[146,-19],[153,-26],[150,-37],[140,-38],[130,-32],[115,-34]]
+};
+function dens(pts){var out=[];for(var i=0;i<pts.length;i++){var a=pts[i],b=pts[(i+1)%pts.length],n=Math.max(1,Math.ceil(Math.max(Math.abs(b[0]-a[0]),Math.abs(b[1]-a[1]))/3));for(var k=0;k<n;k++)out.push([a[0]+(b[0]-a[0])*k/n,a[1]+(b[1]-a[1])*k/n])}return out}
+var LAND=Object.keys(RAW).map(function(k){return dens(RAW[k])});
+var PLACES=[
+ {id:'hell',k:'f',n:'Hell Creek Formation',s:'Hell Creek',lon:-106.2,lat:47.0,t:'Montana, North and South Dakota, Wyoming (USA). The richest source of Triceratops — the classic Triceratops–Tyrannosaurus ecosystem, latest Cretaceous.'},
+ {id:'lance',k:'f',n:'Lance Formation',s:'Lance',lon:-104.5,lat:43.2,t:'Wyoming (USA). Historic collecting area from the Marsh era.'},
+ {id:'denver',k:'f',n:'Denver Formation',s:'Denver',lon:-104.9,lat:39.7,t:'Colorado (USA). Early horn-core material from here helped lead to the recognition of the animal in the late 1880s.'},
+ {id:'scollard',k:'f',n:'Scollard Formation',s:'Scollard',lon:-112.7,lat:51.4,t:'Alberta (Canada). Northern part of the range, in the Red Deer River region.'},
+ {id:'french',k:'f',n:'Frenchman Formation',s:'Frenchman',lon:-108.8,lat:49.5,t:'Saskatchewan (Canada). Northern range, latest Cretaceous.'},
+ {id:'smith',k:'m',n:'Smithsonian NMNH + Libraries & Archives',s:'Smithsonian',lon:-77.03,lat:38.89,t:'Washington DC (USA). Historic Triceratops material and strong open-access collections. Pitch: layered 3D explorer built from open data.'},
+ {id:'yale',k:'m',n:'Yale Peabody Museum',s:'Yale Peabody',lon:-72.92,lat:41.31,t:'New Haven (USA). Marsh’s original type collections. Pitch: history-of-discovery timeline.'},
+ {id:'rom',k:'m',n:'Royal Ontario Museum',s:'ROM',lon:-79.4,lat:43.67,t:'Toronto (Canada). Major dinosaur gallery. Pitch: UX research on how visitors read layered anatomy.'},
+ {id:'tyrrell',k:'m',n:'Royal Tyrrell Museum',s:'Royal Tyrrell',lon:-112.79,lat:51.47,t:'Drumheller, Alberta (Canada). Leading palaeontology centre. Pitch: pathology and health storytelling.'},
+ {id:'cmn',k:'m',n:'Canadian Museum of Nature',s:'Mus. of Nature',lon:-75.69,lat:45.41,t:'Ottawa (Canada). National collection and public programmes. Pitch: classroom edition.'},
+ {id:'mcm',k:'m',n:'McMaster University',s:'McMaster',lon:-79.92,lat:43.26,t:'Hamilton (Canada). Academic network. Pitch: open teaching tool and research prototype.'},
+ {id:'oman',k:'m',n:'Ministry of Heritage and Tourism / Natural History Museum Oman',s:'Muscat',lon:58.4,lat:23.6,t:'Muscat (Oman). National heritage mandate. Pitch: bilingual deep-time gallery experience.'}
+];
+var geo={lon:-104,lat:42,zoom:1.7,tlon:-104,tlat:42,tz:1.7,dim:3,t:67,sel:'hell',time:0,drag:false,hits:[]};
+var gcv=$('#cvGeo'), gctx=gcv.getContext('2d'), gdpr=Math.min(2,window.devicePixelRatio||1);
+function gsize(){var w=gcv.clientWidth,h=gcv.clientHeight;if(!w||!h)return;gcv.width=Math.round(w*gdpr);gcv.height=Math.round(h*gdpr)}
+gsize(); RESIZERS.push(gsize); window.addEventListener('resize',gsize);
+function gproj(lon,lat,R,cx,cy){
+  var l=(lon-geo.lon)*D2R,p=lat*D2R,p0=geo.lat*D2R,cl=Math.cos(p);
+  var x=cl*Math.sin(l),y=Math.cos(p0)*Math.sin(p)-Math.sin(p0)*cl*Math.cos(l),c=Math.sin(p0)*Math.sin(p)+Math.cos(p0)*cl*Math.cos(l);
+  var vis=c>0,px=x,py=y;
+  if(!vis){var m=Math.hypot(x,y)||1;px=x/m;py=y/m}
+  return {x:cx+R*px,y:cy-R*py,vis:vis};
+}
+function vec(lon,lat){var l=lon*D2R,p=lat*D2R;return [Math.cos(p)*Math.cos(l),Math.cos(p)*Math.sin(l),Math.sin(p)]}
+function unvec(v){return [Math.atan2(v[1],v[0])/D2R,Math.asin(clamp(v[2],-1,1))/D2R]}
+function slerp(a,b,t){var d=clamp(a[0]*b[0]+a[1]*b[1]+a[2]*b[2],-1,1),om=Math.acos(d),so=Math.sin(om)||1e-6,k1=Math.sin((1-t)*om)/so,k2=Math.sin(t*om)/so;return [a[0]*k1+b[0]*k2,a[1]*k1+b[1]*k2,a[2]*k1+b[2]*k2]}
+function gpal(){
+  var b=state.band,d=geo.dim;
+  var p={o0:'#0b2a55',o1:'#040a1c',lf:'rgba(53,243,255,.22)',ls:'rgba(53,243,255,.85)',gr:'rgba(53,243,255,.14)',l2:null};
+  if(d>=5){p.o0='#0d3a5e';p.o1='#03101f';p.lf='rgba(125,255,176,.28)';p.ls='rgba(125,255,176,.9)';p.l2='rgba(255,211,107,.32)'}
+  if(d>=6){
+    if(b==='thermal'){p.o0='#4a1a2a';p.o1='#14040c';p.lf='rgba(255,140,60,.34)';p.ls='rgba(255,190,90,.95)';p.l2='rgba(255,70,60,.40)';p.gr='rgba(255,150,80,.14)'}
+    else if(b==='xray'){p.o0='#24303c';p.o1='#06090e';p.lf='rgba(225,238,255,.26)';p.ls='rgba(235,245,255,.95)';p.l2=null;p.gr='rgba(235,245,255,.12)'}
+    else if(b==='uv'){p.o0='#2a1a5a';p.o1='#0a041c';p.lf='rgba(170,130,255,.30)';p.ls='rgba(200,170,255,.95)';p.l2='rgba(255,77,225,.28)';p.gr='rgba(190,150,255,.14)'}
+  }
+  return p;
+}
+function placeById(id){for(var i=0;i<PLACES.length;i++)if(PLACES[i].id===id)return PLACES[i];return null}
+function geoAxes(){
+  setTxt('gX',Math.abs(geo.lon).toFixed(1)+'°'+(geo.lon>=0?'E':'W'));
+  setTxt('gY',Math.abs(geo.lat).toFixed(1)+'°'+(geo.lat>=0?'N':'S'));
+  setTxt('gZ',geo.zoom.toFixed(2)+'×');
+  setTxt('gT',geo.dim>=4?geo.t.toFixed(1)+' Ma':'—');
+  setTxt('gL',geo.dim>=6?BAND_NAMES[state.band]:'—');
+  setTxt('gC',geo.dim>=6?CHEM_SHORT[state.chem]:'—');
+}
+function gframe(){
+  requestAnimationFrame(gframe);
+  if(!gcv.offsetParent||!gcv.width)return;
+  var rc=gcv.getBoundingClientRect(); if(rc.bottom<0||rc.top>window.innerHeight)return;
+  if(!geo.drag){
+    var dl=((geo.tlon-geo.lon+540)%360)-180; geo.lon+=dl*0.14; geo.lat+=(geo.tlat-geo.lat)*0.14; geo.zoom+=(geo.tz-geo.zoom)*0.14;
+  }
+  if(geo.lon>180)geo.lon-=360; if(geo.lon<-180)geo.lon+=360;
+  geo.time+=0.016;
+  var c=gctx,W=gcv.width,H=gcv.height,cx=W/2,cy=H/2,R=Math.min(W,H)*0.44*geo.zoom,P=gpal(),i,j,k,pt;
+  c.setTransform(1,0,0,1,0,0); c.clearRect(0,0,W,H); c.globalCompositeOperation='source-over'; c.setLineDash([]); c.lineCap='round';
+  var g=c.createRadialGradient(cx-R*0.3,cy-R*0.3,R*0.1,cx,cy,R); g.addColorStop(0,P.o0); g.addColorStop(1,P.o1);
+  c.beginPath(); c.arc(cx,cy,R,0,TAU); c.fillStyle=g; c.fill(); c.strokeStyle='rgba(53,243,255,.7)'; c.lineWidth=2*gdpr; c.stroke();
+  // graticule
+  if($('#gGrat').checked){
+    c.strokeStyle=P.gr; c.lineWidth=1*gdpr;
+    function line(pts){var on=false;c.beginPath();for(var n=0;n<pts.length;n++){var q=gproj(pts[n][0],pts[n][1],R,cx,cy);if(q.vis){if(!on){c.moveTo(q.x,q.y);on=true}else c.lineTo(q.x,q.y)}else on=false}c.stroke()}
+    for(i=-75;i<=75;i+=15){var pl=[];for(j=-180;j<=180;j+=3)pl.push([j,i]);line(pl)}
+    for(i=-180;i<180;i+=15){var pm=[];for(j=-85;j<=85;j+=3)pm.push([i,j]);line(pm)}
+  }
+  // land
+  var lg=c.createLinearGradient(0,cy-R,0,cy+R); lg.addColorStop(0,P.lf); lg.addColorStop(1,P.l2||P.lf);
+  LAND.forEach(function(poly){
+    var pts=[],any=false;
+    for(var n=0;n<poly.length;n++){var q=gproj(poly[n][0],poly[n][1],R,cx,cy);if(q.vis)any=true;pts.push(q)}
+    if(!any)return;
+    c.beginPath(); pts.forEach(function(q,n){if(n)c.lineTo(q.x,q.y);else c.moveTo(q.x,q.y)}); c.closePath();
+    c.fillStyle=lg; c.fill(); c.strokeStyle=P.ls; c.lineWidth=1.3*gdpr; c.stroke();
+  });
+  // seaway (4D+)
+  if(geo.dim>=4){
+    var hw=1.0+(geo.t-66)*1.15, west=[],east=[];
+    for(var la=29;la<=56;la+=3){var ce=-98-0.2*(la-30), w=hw*(1+0.25*Math.sin((la-29)/27*Math.PI));west.push([ce-w,la]);east.push([ce+w,la])}
+    var sea=dens(west.concat(east.reverse()));
+    var sp=sea.map(function(q){return gproj(q[0],q[1],R,cx,cy)});
+    if(sp.some(function(q){return q.vis})){
+      c.beginPath(); sp.forEach(function(q,n){if(n)c.lineTo(q.x,q.y);else c.moveTo(q.x,q.y)}); c.closePath();
+      c.fillStyle='rgba(70,150,255,.42)'; c.fill(); c.setLineDash([5*gdpr,5*gdpr]); c.strokeStyle='rgba(130,195,255,.95)'; c.lineWidth=1.2*gdpr; c.stroke(); c.setLineDash([]);
+    }
+  }
+  // routes
+  var hub=placeById('hell');
+  if($('#gRoute').checked){
+    c.setLineDash([6*gdpr,8*gdpr]); c.lineDashOffset=-geo.time*30*gdpr; c.strokeStyle='rgba(255,77,225,.85)'; c.lineWidth=1.6*gdpr;
+    PLACES.forEach(function(pl){
+      if(pl.k!=='m')return;
+      var a=vec(hub.lon,hub.lat),b=vec(pl.lon,pl.lat),on=false;
+      c.beginPath();
+      for(var n=0;n<=48;n++){var ll=unvec(slerp(a,b,n/48)),q=gproj(ll[0],ll[1],R,cx,cy);if(q.vis){if(!on){c.moveTo(q.x,q.y);on=true}else c.lineTo(q.x,q.y)}else on=false}
+      c.stroke();
+    });
+    c.setLineDash([]); c.lineDashOffset=0;
+  }
+  // markers
+  geo.hits=[];
+  if($('#gMark').checked){
+    var showAll=geo.zoom>=2.4, labs=$('#gLab').checked;
+    PLACES.forEach(function(pl){
+      var q=gproj(pl.lon,pl.lat,R,cx,cy); if(!q.vis)return;
+      geo.hits.push({id:pl.id,x:q.x,y:q.y});
+      var col=pl.k==='f'?'#7dffb0':'#ffd36b', pulse=0.5+0.5*Math.sin(geo.time*3+pl.lon);
+      if(geo.dim>=6){c.beginPath();c.arc(q.x,q.y,(8+6*pulse)*gdpr,0,TAU);c.fillStyle=(state.chem==='ker'?'rgba(255,77,225,.25)':(state.chem==='iso'?'rgba(255,211,107,.25)':'rgba(53,243,255,.25)'));c.fill()}
+      c.fillStyle=col; c.strokeStyle='#021018'; c.lineWidth=1.5*gdpr;
+      if(pl.k==='f'){c.beginPath();c.arc(q.x,q.y,5*gdpr,0,TAU);c.fill();c.stroke()}
+      else{c.save();c.translate(q.x,q.y);c.rotate(Math.PI/4);c.fillRect(-4*gdpr,-4*gdpr,8*gdpr,8*gdpr);c.strokeRect(-4*gdpr,-4*gdpr,8*gdpr,8*gdpr);c.restore()}
+      if(pl.id===geo.sel){c.beginPath();c.arc(q.x,q.y,(10+3*pulse)*gdpr,0,TAU);c.strokeStyle='#fff';c.lineWidth=1.6*gdpr;c.stroke()}
+      if(labs&&(showAll||pl.id===geo.sel)){
+        c.font=(11*gdpr)+'px Consolas,monospace'; c.fillStyle='#e6f6ff'; c.textAlign='left'; c.fillText(pl.s,q.x+9*gdpr,q.y-8*gdpr);
+      }
+    });
+  }
+  // region labels
+  if(geo.dim>=4&&$('#gLab').checked){
+    c.font=(10*gdpr)+'px Consolas,monospace'; c.textAlign='center';
+    [['LARAMIDIA',-116,44,'rgba(230,246,255,.7)'],['APPALACHIA',-82,38,'rgba(230,246,255,.5)'],['WESTERN INTERIOR SEAWAY',-98,34,'rgba(150,205,255,.95)']].forEach(function(r){
+      var q=gproj(r[1],r[2],R,cx,cy); if(q.vis){c.fillStyle=r[3];c.fillText(r[0],q.x,q.y)}
+    });
+  }
+  setTxt('geoHud','');
+  $('#geoHud').innerHTML='GLOBE · ORTHOGRAPHIC<br>'+geo.dim+'D MODE';
+  geoAxes();
+}
+requestAnimationFrame(gframe);
+
+function selectPlace(id,go){
+  var pl=placeById(id); if(!pl)return; geo.sel=id;
+  if(go){geo.tlon=pl.lon;geo.tlat=clamp(pl.lat,-80,80);geo.tz=Math.max(geo.tz,pl.k==='f'?2.4:2.2)}
+  $('#geoInfo').innerHTML='<b>'+pl.n+'</b> <span class="tag '+(pl.k==='f'?'t-d':'t-i')+'">'+(pl.k==='f'?'FORMATION':'INSTITUTION')+'</span><br>'+pl.t+'<br><span class="mono" style="color:var(--muted)">'+pl.lat.toFixed(2)+'°, '+pl.lon.toFixed(2)+'°</span>';
+}
+(function(){
+  var h='<div class="sect">Fossil formations</div>';
+  PLACES.forEach(function(pl,i){
+    if(pl.k==='m'&&(i===0||PLACES[i-1].k==='f'))h+='<div class="sect">Target institutions</div>';
+    h+='<button class="btn" data-id="'+pl.id+'">'+pl.n+'</button>';
+  });
+  $('#geoPlaces').innerHTML=h;
+  $$('#geoPlaces button').forEach(function(b){b.addEventListener('click',function(){selectPlace(b.getAttribute('data-id'),true)})});
+})();
+var DIMNOTE={3:'Globe, graticule and range markers.',4:'Adds the time axis — the Western Interior Seaway and the island continents Laramidia and Appalachia.',5:'Adds a palaeoclimate-style recolour of land and water.',6:'Adds spectral band and chemistry focus to the globe.'};
+$$('#geoDim button').forEach(function(b){b.addEventListener('click',function(){
+  $$('#geoDim button').forEach(function(x){x.classList.remove('on')}); b.classList.add('on');
+  geo.dim=+b.getAttribute('data-d'); $('#geoDimNote').textContent=DIMNOTE[geo.dim];
+})});
+$('#geoDimNote').textContent=DIMNOTE[3];
+$('#geoT').addEventListener('input',function(){geo.t=+this.value;$('#geoTTxt').textContent=(+this.value).toFixed(1)});
+function nudge(dlon,dlat){var st=15/Math.max(1,geo.zoom*0.7);geo.tlon+=dlon*st;geo.tlat=clamp(geo.tlat+dlat*st,-85,85)}
+$('#gLeft').addEventListener('click',function(){nudge(-1,0)});$('#gRight').addEventListener('click',function(){nudge(1,0)});
+$('#gUp').addEventListener('click',function(){nudge(0,1)});$('#gDown').addEventListener('click',function(){nudge(0,-1)});
+$('#gZin').addEventListener('click',function(){geo.tz=clamp(geo.tz*1.35,1,8)});$('#gZout').addEventListener('click',function(){geo.tz=clamp(geo.tz/1.35,1,8)});
+$('#gHome').addEventListener('click',function(){geo.tlon=-100;geo.tlat=40;geo.tz=1.7});
+var gdx=0,gdy=0,gmoved=0;
+gcv.addEventListener('pointerdown',function(e){geo.drag=true;gdx=e.clientX;gdy=e.clientY;gmoved=0;try{gcv.setPointerCapture(e.pointerId)}catch(x){}});
+gcv.addEventListener('pointermove',function(e){
+  if(!geo.drag)return;
+  var rc=gcv.getBoundingClientRect(), R=Math.min(rc.width,rc.height)*0.44*geo.zoom, dx=e.clientX-gdx, dy=e.clientY-gdy;
+  gmoved+=Math.abs(dx)+Math.abs(dy); gdx=e.clientX; gdy=e.clientY;
+  geo.lon-=dx/R*57.3; geo.lat=clamp(geo.lat+dy/R*57.3,-85,85); geo.tlon=geo.lon; geo.tlat=geo.lat;
+});
+gcv.addEventListener('pointerup',function(e){
+  geo.drag=false;
+  if(gmoved<6){
+    var rc=gcv.getBoundingClientRect(), mx=(e.clientX-rc.left)*gcv.width/rc.width, my=(e.clientY-rc.top)*gcv.height/rc.height, best=null,bd=1e9;
+    geo.hits.forEach(function(h){var d=Math.hypot(h.x-mx,h.y-my);if(d<bd){bd=d;best=h}});
+    if(best&&bd<18*gdpr)selectPlace(best.id,false);
+  }
+});
+gcv.addEventListener('pointercancel',function(){geo.drag=false});
+selectPlace('hell',false);
+
+setBand('visible'); setChem('hap');
+
+/* ---------- init ---------- */
+applyLayers();
+listeners.forEach(function(f){f(state.age)});
+})();
+</script>
+
+<script>
+(function(){
+var $$=function(q,r){return Array.prototype.slice.call((r||document).querySelectorAll(q))};
+var CAP={geo:'Where it lived and where it is studied',skull:'Rotatable 3D skull, cut open',bay:'Body-system layers and hotspots',teeth:'3D tooth and dental battery',histo:'Bone histology lab',health:'Injuries and palaeopathology',growth:'Growth curve and population',facts:'Facts, diet and analysis methods',targets:'Target institutions',matrix:'The six axes explained',notes:'Disclaimers and sources',credits:'Credits and contact'};
+/* move "about" cards into each viewer's control panel */
+['skull','teeth','histo'].forEach(function(id){
+  var sec=document.getElementById(id), card=sec.querySelector('.controls'), g=sec.querySelector('.inner>.grid.g3');
+  if(!card||!g)return;
+  var acc=document.createElement('div'), h=document.createElement('h3'), box=document.createElement('div');
+  h.textContent='About this layer'; box.className='aboutBox';
+  while(g.firstChild)box.appendChild(g.firstChild);
+  g.parentNode.removeChild(g); acc.appendChild(h); acc.appendChild(box); card.appendChild(acc);
+});
+/* accordion */
+$$('.controls.card').forEach(function(card){
+  $$(':scope>.info',card).forEach(function(inf){
+    var w=document.createElement('div'),h=document.createElement('h3'); h.textContent='About';
+    card.insertBefore(w,inf); w.appendChild(h); w.appendChild(inf);
+  });
+  var groups=[];
+  Array.prototype.slice.call(card.children).forEach(function(k){
+    var h=k.firstElementChild;
+    if(k.tagName==='DIV'&&h&&h.tagName==='H3'){
+      k.classList.add('acc'); groups.push(k); h.tabIndex=0; h.setAttribute('role','button');
+      var t=function(){var was=k.classList.contains('open');groups.forEach(function(x){x.classList.remove('open')});if(!was)k.classList.add('open')};
+      h.addEventListener('click',t);
+      h.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();t()}});
+    }
+  });
+  if(groups[0])groups[0].classList.add('open');
+});
+/* window manager: globe is home, every other window is a panel over it */
+var wins=$$('.win'), tabs=document.getElementById('tabs'), dock=document.getElementById('dock'), idx=0, tbtn=[];
+wins.forEach(function(w,i){
+  var b=document.createElement('button'); b.textContent=w.getAttribute('data-label'); b.addEventListener('click',function(){show(i)}); tabs.appendChild(b); tbtn.push(b);
+  if(i>0){
+    var c=document.createElement('button'); c.className='dockBtn'; c.title=CAP[w.id]||''; c.innerHTML='<b>'+(i<10?'0':'')+i+'</b>'+w.getAttribute('data-label');
+    c.addEventListener('click',function(){show(i)}); dock.appendChild(c);
+    var x=document.createElement('button'); x.className='closeW'; x.textContent='✕ Back to globe'; x.addEventListener('click',function(){show(0)}); w.querySelector('.inner').appendChild(x);
+  }
+});
+function show(i,keepHash){
+  i=Math.max(0,Math.min(wins.length-1,i)); idx=i;
+  wins.forEach(function(w,k){w.classList.toggle('active',k===i||k===0)});
+  tbtn.forEach(function(b,k){b.classList.toggle('on',k===i)});
+  var n=function(x){return (x<10?'0':'')+x};
+  document.getElementById('winCount').textContent=n(i+1)+' / '+n(wins.length);
+  wins[i].scrollTop=0;
+  if(!keepHash){try{history.replaceState(null,'','#'+wins[i].id)}catch(e){}}
+  tbtn[i].scrollIntoView({inline:'center',block:'nearest'});
+  requestAnimationFrame(function(){window.__RES.forEach(function(f){f()})});
+}
+document.getElementById('prevW').addEventListener('click',function(){show(idx-1)});
+document.getElementById('nextW').addEventListener('click',function(){show(idx+1)});
+document.addEventListener('keydown',function(e){
+  var t=e.target&&e.target.tagName; if(t==='INPUT'&&e.target.type!=='checkbox'||t==='TEXTAREA'||e.metaKey||e.ctrlKey||e.altKey)return;
+  if(e.key==='ArrowRight'||e.key==='PageDown'){show(idx+1)} else if(e.key==='ArrowLeft'||e.key==='PageUp'){show(idx-1)} else if(e.key==='Escape'){show(0)}
+});
+window.addEventListener('hashchange',function(){var k=wins.findIndex(function(w){return '#'+w.id===location.hash});if(k>=0)show(k,true)});
+var start=wins.findIndex(function(w){return '#'+w.id===location.hash});
+show(start>=0?start:0,true);
+})();
+</script>
+</body>
+</html>
